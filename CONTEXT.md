@@ -1,39 +1,38 @@
 # CONTEXT — glossary
 
-Every term the workflow uses, pinned down once. When a word turns fuzzy mid-build, settle it here.
+Terms the Forge Evolved uses, pinned down once. Load this on demand when a term is unclear — it is **not**
+loaded every session.
 
-## Ponder
-
-The thinking phase — first of the four. `/ponder` grills a fuzzy idea into shared understanding — scope, the shape of "done", how the work splits into slices — without writing any code or plan file. When the grilling hits a question it can't settle from the codebase or known facts, it leans on `/research`. It ends by handing off to `/inscribe`.
-
-## Inscribe
-
-The plan-writing step that ends the Ponder phase (a command, not a phase of its own). `/inscribe` records the understanding from `/ponder` as a single markdown file at `.claude/plans/active/<slug>.md`, sliced into parts, with a progress block near the top.
-
-## Research
-
-A sub-skill `/ponder` leans on (and usable on its own) when a question can't be settled from the codebase or known facts. Two depths: **light** — inline, in-session: read the code, maybe a web lookup; and **deep** — a parallel subagent fan-out across sources for genuinely novel unknowns, which confirms before launching. Research only gathers and reports; `/inscribe` records what mattered in the plan's `## Research` section.
-
-## Forge
-
-The build phase. `/forge` reads the active plan and works through every unchecked slice inline — implementing each, ticking its box, re-rendering the progress bar — then commits. No branches, no subagents; the work happens in this session on the current branch.
-
-## Temper
-
-The review-and-harden phase. `/temper` checks the built work against the plan: does each slice actually meet its intent, is it correct and clean. It fixes small issues inline and sends weak slices back by un-ticking them and annotating what's missing. Commits any fixes.
-
-## Seal
-
-The closer phase. `/seal` confirms every slice is done, flips the plan's frontmatter to `status: done`, moves the file from `.claude/plans/active/` to `.claude/plans/done/`, and makes a final commit.
-
-## Plan
-
-A single markdown file at `.claude/plans/active/<slug>.md` (in-flight) or `.claude/plans/done/<slug>.md` (finished). Holds frontmatter (`name`, `created`, `status`), a `## Progress` block (a 10-cell bar + a slice checklist), a `## Goal`, optional `## Constraints / out of scope` and `## Research` sections, and one `## Slice N:` section per slice.
+## Batch
+The set of `status:ready` issues `/forge` proposes to work in one run. You approve (and may trim) it;
+**approval is the moment autonomy begins.** One `/forge` run drains one batch, then stops and reports — no
+auto-chaining to the next. A batch ≈ one phase of a larger plan, by convention, not by an enforced grouping.
 
 ## Slice
+One discrete issue: a unit of work small enough for a single fresh builder subagent to finish within one
+context window. `/ponder` slices an idea into issues, typically splitting UI from logic. If a builder
+outgrows its context on one slice, that is a *slicing* failure → the issue is labeled `needs-reslice` and
+escalated, never continued by a second builder.
 
-One coherent chunk of a plan — something you could describe in a sentence. Appears twice in the plan file: as a checklist item in the progress block (`- [ ]` / `- [x]`) and as a `## Slice N:` detail section. `/forge` builds slices and ticks them; `/temper` un-ticks any that need rework.
+## Hard gate
+The objective checks that run *before* any AI review opinion counts: tests + type-check + lint (for
+`verify:test`) or a render/screenshot capture (for `verify:visual`). A failed hard gate is an automatic FAIL.
+A builder modifying, weakening, or deleting test files is an automatic FAIL **and** an escalation.
 
-## Progress block
+## Verification method
+The per-issue label `/inscribe` sets to say how an issue is proven: `verify:test` (logic/backend — the
+builder must add tests; tests/types/lint gate it) or `verify:visual` (UI — the reviewer checks a
+render/screenshot plus a light objective check). It drives both the builder's obligation and the reviewer's
+rubric.
 
-The bit near the top of every plan: a 10-cell bar (`█` done, `░` not — filled cells = `round(done / total × 10)`) plus the slice checklist. The single source of truth for what's done; kept current by `/forge` and `/temper`.
+## Escalation
+The safety valve — never "wait for a human mid-run." An issue that can't pass (3 failed builder→reviewer
+rounds, a diff exceeding ~2× expected scope, a touch to test/CI config, or context overflow) is labeled
+`status:needs-human` + a reason (`review-failed` | `needs-reslice`), skipped, and surfaced in the
+end-of-batch report. Bad code simply never auto-merges.
+
+## Handoff
+The continuation mechanism behind the 30/40 context rule. State lives in GitHub + git +
+`.claude/forge/loop-state`, so resuming the loop is just `/clear` then re-run `/forge` (it reads the board and
+picks up the next issue). `/ponder` is the exception (no external state yet): it writes a distilled handoff to
+`.claude/forge/handoff.md` when it must checkpoint, which also lets `/inscribe` resume in a fresh context.

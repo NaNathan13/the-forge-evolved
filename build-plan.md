@@ -112,7 +112,7 @@ matches D17 exactly; cut artifacts absent.
 
 **Files:** Create/rewrite `CLAUDE.md`, `templates/CLAUDE.md`; trim `CONTEXT.md` + `templates/CONTEXT.md`. D21, D23.
 
-- [ ] **Step 1: Write the repo's own `CLAUDE.md`** (<100 lines, imperative, one rule/line). Required sections:
+- [x] **Step 1: Write the repo's own `CLAUDE.md`** (<100 lines, imperative, one rule/line). Required sections:
   - Title + one-line purpose.
   - **Commands:** `ponder` / `inscribe` / `forge` one-liners + "use sequentially; don't forge without ready issues."
   - **Context discipline (CRITICAL):** warn 30% / hard-stop 40% / hand off + continue; the statusline gauge and
@@ -129,12 +129,12 @@ matches D17 exactly; cut artifacts absent.
     - If I flag a mistake, fix it without re-asking or apologizing.
     ```
   - Footer: `See CONTEXT.md for glossary (load on demand). See .knowledge/lessons.md (skill-fed).` No `@imports`.
-- [ ] **Step 2: Write `templates/CLAUDE.md`** — the generic version the installer drops into a *target* project:
+- [x] **Step 2: Write `templates/CLAUDE.md`** — the generic version the installer drops into a *target* project:
   same structure, project-name placeholder, project-specific test/lint commands left as `{{TEST_CMD}}` etc.
   for the installer to fill (D22).
-- [ ] **Step 3: Trim `CONTEXT.md`** to a lightweight glossary of the Forge's own terms (batch, slice, hard gate,
+- [x] **Step 3: Trim `CONTEXT.md`** to a lightweight glossary of the Forge's own terms (batch, slice, hard gate,
   verification method, escalation, handoff). Remove any Core glossary cruft and any hard-gate validation language.
-- [ ] **Step 4: Verify + commit.** Check: `wc -l CLAUDE.md` ≤ 100; `grep -c '@' CLAUDE.md` shows no stray imports.
+- [x] **Step 4: Verify + commit.** Check: `wc -l CLAUDE.md` ≤ 100; `grep -c '@' CLAUDE.md` shows no stray imports.
   Commit: `git commit -am "feat: lean CLAUDE.md + template + trimmed CONTEXT"`.
 
 **Delivers:** the always-loaded layer is lean and high-signal. **Verify:** <100 lines; Response Style present;

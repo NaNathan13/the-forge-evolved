@@ -1,30 +1,34 @@
-# CONTEXT — <placeholder: project-name>
+# CONTEXT — {{PROJECT_NAME}}
 
-> Glossary. Add a term when you find yourself disambiguating it in conversation.
-
-<!--
-  Skills read this reactively when a term is ambiguous. Keep entries to a
-  paragraph. The workflow vocabulary is pre-seeded below — leave it alone unless
-  you genuinely diverge. Add your project's own terms under ## Language.
--->
+> Glossary. Loaded on demand, not every session. The Forge vocabulary is pre-seeded below — leave it alone
+> unless you genuinely diverge. Add your project's own terms under ## Project terms.
 
 ## Workflow terms
 
-**Ponder**: The thinking phase — first of the four. Grill a fuzzy idea into shared understanding — scope, "done", how the work splits into slices — without writing code or a plan. Ends by handing off to Inscribe.
+**Batch**: The set of `status:ready` issues `/forge` proposes to work in one run. You approve (and may trim)
+it; approval is the moment autonomy begins. One run drains one batch, then stops and reports — no auto-chaining.
 
-**Inscribe**: The plan-writing step that ends the Ponder phase (a command, not a phase of its own). Records the understanding as a single markdown file at `.claude/plans/active/<slug>.md`, sliced into parts, with a progress block near the top.
+**Slice**: One discrete issue, small enough for a single fresh builder subagent to finish within one context
+window. `/ponder` slices an idea into issues, typically splitting UI from logic. Outgrowing context on a slice
+is a slicing failure → `needs-reslice`.
 
-**Forge**: The build phase. Reads the active plan and works through every unchecked slice inline — implementing each, ticking its box, re-rendering the progress bar — then commits. No branches, no subagents.
+**Hard gate**: Objective checks that run before any AI review opinion counts — tests + type-check + lint
+(`verify:test`) or a render/screenshot (`verify:visual`). A failed hard gate is an automatic FAIL; a builder
+touching test files to pass is an automatic FAIL + escalation.
 
-**Temper**: The review-and-harden phase. Checks the built work against the plan, fixes small issues inline, and un-ticks any slice that needs real rework.
+**Verification method**: The per-issue label `/inscribe` sets — `verify:test` (builder adds tests; tests/types/
+lint gate it) or `verify:visual` (reviewer checks a render/screenshot). Drives builder obligation and reviewer
+rubric.
 
-**Seal**: The closer phase. Confirms every slice is done, flips frontmatter to `status: done`, and moves the plan from `active/` to `done/`.
+**Escalation**: An issue that can't pass (3 failed rounds, diff >~2× expected scope, touched test/CI config, or
+context overflow) is labeled `status:needs-human` + a reason (`review-failed` | `needs-reslice`), skipped, and
+surfaced in the end-of-batch report. Never blocks the run waiting for a human; bad code never auto-merges.
 
-**Plan**: A single `.claude/plans/<active|done>/<slug>.md` file — frontmatter (`name`, `created`, `status`), a `## Progress` block, a `## Goal`, optional constraints and research, and one `## Slice N:` section per slice.
+**Handoff**: The continuation behind the 30/40 context rule. State lives in GitHub + git +
+`.claude/forge/loop-state`, so resume = `/clear` then re-run `/forge`. `/ponder` writes a distilled handoff to
+`.claude/forge/handoff.md` when it must checkpoint.
 
-**Slice**: One coherent chunk of a plan. Appears as a checklist item in the progress block and as a `## Slice N:` detail section.
-
-## Language
+## Project terms
 
 <!-- Add project-specific terms here as you find ambiguity. -->
 
