@@ -1,0 +1,213 @@
+# ============================================================================
+# The Forge Evolved — labels -> board sync   (INSTALLABLE TEMPLATE)
+# ----------------------------------------------------------------------------
+# Copy this file to .github/workflows/sync-board.yml in the target repo. The
+# logic is repo-agnostic: every repo-specific id is read from a repository
+# (or org) Variable, and the Projects PAT from a Secret. The Phase 7 installer
+# (light-the-forge) creates the board and POPULATES THESE VALUES — it does not
+# edit this file. The file itself is identical to the live workflow except for
+# this expanded installer-facing header.
+#
+# WHAT THIS DOES
+#   The Forge drives issue state via `status:*` labels. When a status label is
+#   added to an issue, this workflow sets the matching option on the Projects
+#   v2 board's single-select `Status` field, so the board is a synchronized
+#   *view* of the labels. (Card moves are not verified at install time — they
+#   only become observable once a status label is applied to a board issue.)
+#
+# LABEL -> BOARD STATUS OPTION MAP
+#   status:ready       -> Ready
+#   status:forging     -> Forging
+#   status:in-review   -> In Review
+#   status:done        -> Done
+#   status:needs-human -> Needs Human
+#   (The Backlog column has NO status label — it is the pre-ready default and
+#    is intentionally NOT mapped here.)
+#
+# ----------------------------------------------------------------------------
+# INSTALLER: VARIABLES TO SET  (gh variable set NAME --body "VALUE" [--repo R])
+# ----------------------------------------------------------------------------
+#   FORGE_PROJECT_ID
+#       The Projects v2 NODE id (starts with "PVT_..."), NOT the project number.
+#       Obtain:
+#         gh project view <NUMBER> --owner <OWNER> --format json --jq '.id'
+#       or via GraphQL (user project):
+#         gh api graphql -f query='query($o:String!,$n:Int!){
+#           user(login:$o){ projectV2(number:$n){ id } } }' -f o=<OWNER> -F n=<NUMBER>
+#       (use organization(login:$o) for org-owned projects)
+#
+#   FORGE_STATUS_FIELD_ID  + the five FORGE_OPT_* option ids
+#       The `Status` single-select field id AND each option's id. One query
+#       returns all of them — match option ids by name:
+#         gh api graphql -f query='query($p:ID!){
+#           node(id:$p){ ... on ProjectV2 {
+#             field(name:"Status"){
+#               ... on ProjectV2SingleSelectField { id options { id name } }
+#             } } } }' -f p="$FORGE_PROJECT_ID"
+#       From the result:
+#         .data.node.field.id                                   -> FORGE_STATUS_FIELD_ID
+#         options[] where name == "Ready"        -> .id         -> FORGE_OPT_READY
+#         options[] where name == "Forging"      -> .id         -> FORGE_OPT_FORGING
+#         options[] where name == "In Review"    -> .id         -> FORGE_OPT_IN_REVIEW
+#         options[] where name == "Done"         -> .id         -> FORGE_OPT_DONE
+#         options[] where name == "Needs Human"  -> .id         -> FORGE_OPT_NEEDS_HUMAN
+#
+# ----------------------------------------------------------------------------
+# INSTALLER: SECRET TO SET  (gh secret set NAME [--repo R])
+# ----------------------------------------------------------------------------
+#   FORGE_PROJECT_PAT
+#       A CLASSIC Personal Access Token authorized for Projects v2 — the
+#       default Actions GITHUB_TOKEN CANNOT read or write Projects v2.
+#         - Classic PAT: scopes `project` (+ `repo` for private repos).
+#       NOTE: fine-grained PATs do NOT support Projects v2.
+# ============================================================================
+
+name: sync-board
+
+on:
+  issues:
+    types: [labeled, unlabeled]
+
+# Serialize label churn on the same issue so rapid status changes don't race.
+concurrency:
+  group: sync-board-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  sync:
+    # Only react to status:* labels, and only on the `labeled` event (a new
+    # status being applied). unlabeled-of-a-status-label on its own is a no-op:
+    # the agent always applies the new status, and moving on `labeled` is
+    # sufficient and idempotent.
+    if: github.event.action == 'labeled' && startsWith(github.event.label.name, 'status:')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.FORGE_PROJECT_PAT }}
+      PROJECT_ID: ${{ vars.FORGE_PROJECT_ID }}
+      STATUS_FIELD_ID: ${{ vars.FORGE_STATUS_FIELD_ID }}
+      ISSUE_NODE_ID: ${{ github.event.issue.node_id }}
+      LABEL_NAME: ${{ github.event.label.name }}
+    steps:
+      - name: Map status label -> Status option id
+        id: map
+        env:
+          OPT_READY: ${{ vars.FORGE_OPT_READY }}
+          OPT_FORGING: ${{ vars.FORGE_OPT_FORGING }}
+          OPT_IN_REVIEW: ${{ vars.FORGE_OPT_IN_REVIEW }}
+          OPT_DONE: ${{ vars.FORGE_OPT_DONE }}
+          OPT_NEEDS_HUMAN: ${{ vars.FORGE_OPT_NEEDS_HUMAN }}
+        run: |
+          set -euo pipefail
+          case "$LABEL_NAME" in
+            status:ready)       option_id="$OPT_READY";       option_name='Ready' ;;
+            status:forging)     option_id="$OPT_FORGING";     option_name='Forging' ;;
+            status:in-review)   option_id="$OPT_IN_REVIEW";   option_name='In Review' ;;
+            status:done)        option_id="$OPT_DONE";        option_name='Done' ;;
+            status:needs-human) option_id="$OPT_NEEDS_HUMAN"; option_name='Needs Human' ;;
+            *)
+              echo "No board mapping for label '$LABEL_NAME' (e.g. Backlog has no status label). Nothing to do."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+          if [ -z "$option_id" ]; then
+            echo "::error::Mapped '$LABEL_NAME' to '$option_name' but its option-id variable is empty. Did the installer set FORGE_OPT_* variables?"
+            exit 1
+          fi
+          echo "Label '$LABEL_NAME' -> Status '$option_name' (option id $option_id)"
+          echo "option_id=$option_id" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve project item id for this issue
+        id: item
+        if: steps.map.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          if [ -z "${PROJECT_ID:-}" ] || [ -z "${STATUS_FIELD_ID:-}" ]; then
+            echo "::error::FORGE_PROJECT_ID and/or FORGE_STATUS_FIELD_ID variables are empty. Run the installer to populate them."
+            exit 1
+          fi
+
+          # The issue node id arrives in the event payload. Query its
+          # projectItems and pick the item whose project.id matches our board.
+          resp="$(gh api graphql \
+            -f issueId="$ISSUE_NODE_ID" \
+            -f query='
+              query($issueId: ID!) {
+                node(id: $issueId) {
+                  ... on Issue {
+                    projectItems(first: 50) {
+                      nodes {
+                        id
+                        project { id }
+                      }
+                    }
+                  }
+                }
+              }')"
+
+          # Projects API can return HTTP 200 with a top-level errors[] array.
+          if echo "$resp" | jq -e '.errors? | length > 0' >/dev/null 2>&1; then
+            msg="$(echo "$resp" | jq -r '.errors[].message' | paste -sd '; ' -)"
+            echo "::error::GraphQL error while resolving project item: $msg"
+            exit 1
+          fi
+
+          item_id="$(echo "$resp" \
+            | jq -r --arg pid "$PROJECT_ID" \
+                '.data.node.projectItems.nodes[]? | select(.project.id == $pid) | .id' \
+            | head -n1)"
+
+          if [ -z "$item_id" ] || [ "$item_id" = "null" ]; then
+            echo "Issue is not on project board $PROJECT_ID yet (no matching project item). inscribe normally adds it; nothing to move. Exiting cleanly."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Resolved project item id: $item_id"
+          echo "item_id=$item_id" >> "$GITHUB_OUTPUT"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set Status field on the board
+        if: steps.map.outputs.skip != 'true' && steps.item.outputs.found == 'true'
+        env:
+          ITEM_ID: ${{ steps.item.outputs.item_id }}
+          OPTION_ID: ${{ steps.map.outputs.option_id }}
+        run: |
+          set -euo pipefail
+          resp="$(gh api graphql \
+            -f projectId="$PROJECT_ID" \
+            -f itemId="$ITEM_ID" \
+            -f fieldId="$STATUS_FIELD_ID" \
+            -f optionId="$OPTION_ID" \
+            -f query='
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(
+                  input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optionId }
+                  }
+                ) {
+                  projectV2Item { id }
+                }
+              }')"
+
+          # Projects API can return HTTP 200 with a top-level errors[] array.
+          if echo "$resp" | jq -e '.errors? | length > 0' >/dev/null 2>&1; then
+            msg="$(echo "$resp" | jq -r '.errors[].message' | paste -sd '; ' -)"
+            echo "::error::GraphQL error while updating Status field: $msg"
+            exit 1
+          fi
+
+          updated="$(echo "$resp" | jq -r '.data.updateProjectV2ItemFieldValue.projectV2Item.id // empty')"
+          if [ -z "$updated" ]; then
+            echo "::error::updateProjectV2ItemFieldValue returned no item id; response was: $resp"
+            exit 1
+          fi
+          echo "Board updated: item $updated Status set for label '$LABEL_NAME'."
