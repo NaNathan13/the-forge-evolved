@@ -1,6 +1,6 @@
 ---
-name: light-the-core
-description: Bootstrap a project on The Forge Core — copy skills, plan scaffolding, settings, and templates into the target repo. Use when the user says "install core into this project", "light the core", "set up The Forge Core here", or "/light-the-core".
+name: light-the-forge
+description: Bootstrap a project on The Forge Evolved — copy skills, agents, hooks, settings, and templates into the target repo, then set up the GitHub board/labels/sync. Use when the user says "install the forge into this project", "light the forge", "set up The Forge Evolved here", or "/light-the-forge". (Full installer behavior is built in Phase 7.)
 ---
 
 # Light the Core
