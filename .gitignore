@@ -1,0 +1,7 @@
+.claude/settings.local.json
+.DS_Store
+.playwright-mcp/
+# ephemeral run-state (NOT knowledge) — dir kept via .gitkeep
+.claude/forge/.ctx
+.claude/forge/loop-state
+.claude/forge/handoff.md
