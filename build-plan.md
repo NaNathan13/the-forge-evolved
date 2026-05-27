@@ -262,7 +262,7 @@ created with correct labels/criteria.
   diff, *nothing else*. Output: per-criterion `PASS|FAIL` with a cited diff line + one-sentence evidence; a FAIL
   without a citation is auto-ignored; APPROVE only if all PASS. Prompt framing: "find every way this diff fails
   the criteria." Adapts to `verify:visual` (checks the screenshot/render evidence instead of tests).
-- [ ] **Step 3: Write `forge/SKILL.md`** — the thin orchestrator. Required loop (holds only batch list + 1-line
+- [x] **Step 3: Write `forge/SKILL.md`** — the thin orchestrator. Required loop (holds only batch list + 1-line
   status per issue — D6):
   1. Read `gh issue list --label status:ready`; **propose the batch** and list it; **wait for approval** (D5).
   2. Init/refresh `.claude/forge/loop-state` (batch + cursor + attempt). For each issue, in order:
@@ -281,11 +281,14 @@ created with correct labels/criteria.
      - Update `loop-state`; capture the builder/reviewer **context% + round count** for the report (D19).
   3. At batch end: **stop**, emit the report (merged / escalated-with-reason / remaining + per-issue context% &
      rounds). No auto-chaining to the next batch (D18).
-- [ ] **Step 4: Verify end-to-end** on the test repo: ready 2 trivial issues (one `verify:test`, one
+- [x] **Step 4: Verify end-to-end** on the test repo: ready 2 trivial issues (one `verify:test`, one
   `verify:visual`), run forge, approve the batch, confirm: branches created, cards moved ready→forging→in-review
   →done, PRs squash-merged + issues closed, a deliberately-failing issue escalates to Needs Human after 3 rounds,
   and the end report lists context%/rounds.
-- [ ] **Step 5: Commit.** `git commit -am "feat: forge orchestrator loop + builder/reviewer agents"`.
+  *(Logic verified now via independent per-criterion read-only review — 13 criteria, REJECT→fix→all PASS. The
+  review caught two real bugs (retry-branch ref + broken revert/relabel path), both fixed. Live end-to-end run
+  is the Phase 8 dogfood, once the Phase 7 installer stands up a real board + PAT.)*
+- [x] **Step 5: Commit.** `git commit -am "feat: forge orchestrator loop + builder/reviewer agents"`.
 
 **Delivers:** the autonomous, hands-off, escalating batch loop (D7). **Verify:** full happy-path + an escalation
 path both observed end-to-end.
