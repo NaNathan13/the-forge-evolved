@@ -1,35 +1,71 @@
 ---
 name: ponder
-description: Phase 1 of the workflow — turn a fuzzy idea into shared understanding by grilling it, then hand off to /inscribe to write the plan. Use when starting new work from a rough idea. Triggered by /ponder.
+description: Phase 1 of the workflow — grill a fuzzy idea into shared understanding one question at a time, research unknowns as needed, then propose a GitHub issue breakdown for one-word approval and invoke /inscribe to create it. No code, no GitHub writes during ponder. Triggered by /ponder, "let's plan this", "think this through".
 ---
 
 # /ponder — think the work through
 
-`/ponder` is the **planning phase** — it turns a fuzzy idea into a clear, agreed shape *before* a single line gets written. No code, no plan file; that's `/inscribe`'s job.
+`/ponder` turns a fuzzy idea into an agreed, sliced shape — then proposes the GitHub issue breakdown and, on your "go", invokes `/inscribe` to record it and create the issues. All in one session.
 
 ```
-Ponder → Forge → Temper → Seal      (the Ponder phase = /ponder then /inscribe)
+ponder → inscribe → forge      (ponder runs the interview + proposes the breakdown; inscribe writes it)
 ```
 
-## What it does
+**Hard line: no code, no GitHub writes during ponder.** You are reaching understanding and proposing a breakdown. The only thing you may write is `.claude/forge/handoff.md` (the context checkpoint, below).
 
-1. **Understand the idea.** Read what the user is asking for. If anything material is ambiguous — scope, the shape of "done", a fork in approach — resolve it now, not later.
+## 0. Resume from handoff if one exists
 
-2. **Classify what must not be lost, and who uses it.** Part of understanding any app is settling two things that decide its architecture: does it keep information the user will expect to find later (→ it needs durable, server-side storage — never browser-only), and is it for one person or shared by several (→ a local file store vs. a server others on the network can reach)? Settle both before handing off. The build doctrine in `CLAUDE.md` ("Building apps people will rely on") spells out the defaults — you make these calls; don't make the user pick technology.
+Check `.claude/forge/handoff.md` first. If it exists, read it, resume from where it left off (idea, decisions reached, open questions, next step), then continue the interview from that point. Don't re-litigate settled decisions.
 
-3. **Grill it.** For anything non-trivial, lean on the `grill-me` skill to stress-test the idea: walk the decision tree, surface hidden assumptions, settle each open question one at a time. Skip the grilling only when the work is genuinely small and unambiguous.
+## 1. Interview — ONE question at a time
 
-   **Research on demand.** Grill first; when a question can't be settled from the codebase or known facts — an unfamiliar library, prior art, a fork you can't call — lean on the `research` skill, then feed what comes back into the next question. Light research just runs; deep research (a parallel subagent fan-out) confirms with the operator before launching. Research informs the grill; it writes nothing.
+Lean on the `grill-me` skill. Stress-test the idea by walking the decision tree, surfacing hidden assumptions, and resolving each fork **one question at a time** — ask, wait for the answer, then ask the next. Never batch questions or hand the user a questionnaire. You are settling:
 
-4. **Settle the slices.** By the end you should know, roughly, how the work breaks into parts — the slices `/inscribe` will write down. A slice is one coherent chunk of work you could describe in a sentence. Aim for a handful, not twenty.
+- **Scope** — what's in, what's explicitly out.
+- **The shape of "done"** — what observable result proves the idea is built.
+- **The slices** — how the work splits into discrete issues (see CONTEXT.md: *slice*), and in particular the **UI vs logic split**: backend/logic comes first, the UI that depends on it comes after.
 
-5. **Hand off.** Once the shape is clear, stop and recommend the next step:
+Skip the grilling only when the work is genuinely small and unambiguous.
 
-   > Understanding reached. Run `/inscribe` to write the plan.
+## 2. Research on demand (via forge-researcher)
+
+Grill first. When a question can't be settled from the codebase or known facts — an unfamiliar library, prior art, a fork you can't call — dispatch the **`forge-researcher`** subagent with ONE focused question. It returns a distilled answer, not a transcript; feed that into the next question.
+
+- **Confirm before any heavy or broad research fan-out.** A single scoped lookup can just run. Before launching broad/parallel research, state in one line what you intend and get a yes.
+- Research informs the interview. It writes nothing.
+
+## 3. Self-checkpoint context (the 30/40 rule)
+
+This is a long interactive session — watch the context gauge. **At ~35%, before you get blocked mid-action:**
+
+1. Write a distilled handoff to `.claude/forge/handoff.md` capturing: the **idea**, **decisions reached so far**, **open questions**, and the **next step**. Distill — it's a continuation note, not a transcript.
+2. Tell the user: `/clear`, then re-run `/ponder` — it resumes from the handoff.
+
+This is the **only** skill that writes `handoff.md`. It also lets `/inscribe` run in a fresh context off the same handoff if needed.
+
+## 4. Propose the issue breakdown (then await one word)
+
+When the shape is clear, present the proposed breakdown and ask for a **single one-word confirmation** (`go` / `yes`). Do NOT write anything outward yet. For **each issue**, list:
+
+- **Title** — short, imperative.
+- **Scope** — one or two lines: what's in this slice.
+- **UI vs logic split** — order logic/backend issues *before* the UI that depends on them.
+- **Verification method** — `verify:test` for logic/backend (tests prove it) or `verify:visual` for UI (render/screenshot check). See CONTEXT.md: *verification method*.
+- **Machine-checkable acceptance criteria** — objective, verifiable conditions, not vibes ("`GET /api/items` returns 200 with a JSON array", not "the API works").
+
+End with the question, e.g.:
+
+> Proposed breakdown above — 4 issues, logic before UI. Reply `go` to create them, or tell me what to change.
+
+## 5. On "go" → invoke /inscribe
+
+- On `go`/`yes`: invoke `/inscribe` **in this same session** to document the knowledge and create the GitHub issues from the approved breakdown.
+- If the user wants changes: revise the breakdown and re-ask for confirmation. Don't proceed on anything but a clear yes.
 
 ## Rules
 
-- **No plan file here.** `/ponder` reaches understanding; `/inscribe` records it. Don't create anything under `.claude/plans/`.
-- **No code.** Planning only.
-- **Resolve forks before inscribing.** A plan written on top of an unresolved question just defers the problem into `/forge`.
-- **One idea per ponder.** If the conversation reveals two unrelated efforts, that's two plans — ponder them separately.
+- **No code, no GitHub writes in ponder.** Understanding and a proposed breakdown only. `/inscribe` does the writes.
+- **One question at a time.** Never a questionnaire.
+- **Resolve forks before proposing.** A breakdown built on an unresolved question just defers the problem into `/forge`.
+- **One idea per ponder.** If two unrelated efforts surface, that's two separate ponders.
+- **Confirm before heavy research.** Scoped lookups run; broad fan-out asks first.
