@@ -223,22 +223,26 @@ created with correct labels/criteria.
 
 **Files:** Create `.github/workflows/sync-board.yml` and `templates/sync-board.yml`. Define the label set. D15.
 
-- [ ] **Step 1: Define the label set** (created by the installer in Phase 7; documented here):
+- [x] **Step 1: Define the label set** (created by the installer in Phase 7; documented here):
   `status:ready`, `status:forging`, `status:in-review`, `status:done`, `status:needs-human`;
   `verify:test`, `verify:visual`; `needs-reslice`, `review-failed`. Status labels are mutually exclusive
   (the agent removes the old status label when adding the new one).
-- [ ] **Step 2: Write `.github/workflows/sync-board.yml`.** Trigger: `issues: [labeled, unlabeled]`. On a
+- [x] **Step 2: Write `.github/workflows/sync-board.yml`.** Trigger: `issues: [labeled, unlabeled]`. On a
   `status:*` label change, call `updateProjectV2ItemFieldValue` to set the board's `Status` field to the matching
   option. Uses repo/org **variables** for `PROJECT_ID`, `STATUS_FIELD_ID`, and the option IDs (written by the
   installer — D15), and a **PAT secret** with `project` scope (the Actions `GITHUB_TOKEN` cannot touch Projects).
   Map: `status:ready→Ready`, `forging→Forging`, `in-review→In Review`, `done→Done`, `needs-human→Needs Human`.
   Pause/handle GraphQL `errors` in the response (rate-limit returns 200+errors).
-- [ ] **Step 3: Write `templates/sync-board.yml`** — identical but with `${{ vars.* }}` placeholders documented
+- [x] **Step 3: Write `templates/sync-board.yml`** — identical but with `${{ vars.* }}` placeholders documented
   so the installer can populate them per repo.
-- [ ] **Step 4: Verify** on the test repo: `gh issue edit <n> --add-label status:forging --remove-label status:ready`
+- [x] **Step 4: Verify** on the test repo: `gh issue edit <n> --add-label status:forging --remove-label status:ready`
   → within a few seconds the board card moves to **Forging**. Confirm the Action run succeeded
   (`gh run list --workflow sync-board.yml`).
-- [ ] **Step 5: Commit.** `git commit -am "feat: labels->Projects v2 board sync workflow"`.
+  *(Structural verification done now: both YAML parse; GraphQL `updateProjectV2ItemFieldValue` + `projectItems`
+  filter confirmed against current GitHub docs; per-criterion read-only review APPROVED after a D15 fix
+  (fine-grained PAT removed). Live "label moves card" run is folded into Phase 7/8 once the installer stands up
+  the board + populates the `vars`/PAT secret.)*
+- [x] **Step 5: Commit.** `git commit -am "feat: labels->Projects v2 board sync workflow"`.
 
 **Delivers:** agent-simple label state renders as a live Kanban. **Verify:** a label change moves the card.
 
