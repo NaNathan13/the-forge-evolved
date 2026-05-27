@@ -7,7 +7,7 @@ description: Disciplined diagnosis loop for hard bugs and performance regression
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
-When exploring the codebase, use the project's domain glossary (`CONTEXT.md`) to get a clear mental model of the relevant modules, and check the relevant sealed plans (`.claude/plans/done/`) for decisions in the area you're touching.
+When exploring the codebase, use the project's domain glossary (`CONTEXT.md`) to get a clear mental model of the relevant modules, and check prior decisions in the area you're touching — closed GitHub issues and `.knowledge/lessons.md`.
 
 ## Phase 1 — Build a feedback loop
 
@@ -114,4 +114,4 @@ Required before declaring done:
 - [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
 - [ ] The hypothesis that turned out correct is stated in the commit message — so the next debugger learns
 
-**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) — note the recommendation in the plan (e.g. its constraints) or a follow-up. Make the recommendation **after** the fix is in, not before — you have more information now than when you started. (*If the answer is a recognisable error pattern rather than an architectural change, the previous checklist item already covers it — don't double-file.*)
+**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) — note the recommendation as a follow-up issue (or a one-line entry in `.knowledge/lessons.md` if it's a reusable codebase fact). Make the recommendation **after** the fix is in, not before — you have more information now than when you started. (*If the answer is a recognisable error pattern rather than an architectural change, the previous checklist item already covers it — don't double-file.*)
