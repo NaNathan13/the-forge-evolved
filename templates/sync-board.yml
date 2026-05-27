@@ -11,8 +11,9 @@
 # WHAT THIS DOES
 #   The Forge drives issue state via `status:*` labels. When a status label is
 #   added to an issue, this workflow sets the matching option on the Projects
-#   v2 board's single-select `Status` field, so the board is a synchronized
-#   *view* of the labels. (Card moves are not verified at install time — they
+#   v2 board's custom single-select `Forge Status` field, so the board is a
+#   synchronized *view* of the labels. (Card moves are not verified at install
+#   time — they
 #   only become observable once a status label is applied to a board issue.)
 #
 # LABEL -> BOARD STATUS OPTION MAP
@@ -37,11 +38,13 @@
 #       (use organization(login:$o) for org-owned projects)
 #
 #   FORGE_STATUS_FIELD_ID  + the five FORGE_OPT_* option ids
-#       The `Status` single-select field id AND each option's id. One query
+#       The `Forge Status` single-select field id AND each option's id. (The
+#       installer creates a custom field named "Forge Status" — NOT the board's
+#       built-in "Status" field — and this workflow targets that one.) One query
 #       returns all of them — match option ids by name:
 #         gh api graphql -f query='query($p:ID!){
 #           node(id:$p){ ... on ProjectV2 {
-#             field(name:"Status"){
+#             field(name:"Forge Status"){
 #               ... on ProjectV2SingleSelectField { id options { id name } }
 #             } } } }' -f p="$FORGE_PROJECT_ID"
 #       From the result:

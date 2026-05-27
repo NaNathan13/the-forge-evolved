@@ -2,8 +2,8 @@
 # The Forge Evolved — labels -> board sync
 # ----------------------------------------------------------------------------
 # The Forge drives issue state via `status:*` labels. This workflow mirrors a
-# status-label change onto the GitHub Projects v2 board's single-select
-# `Status` field, so the board is a synchronized *view* of the labels.
+# status-label change onto the GitHub Projects v2 board's custom single-select
+# `Forge Status` field, so the board is a synchronized *view* of the labels.
 #
 # Label -> board Status option map:
 #   status:ready       -> Ready
@@ -16,7 +16,7 @@
 # Required repo/org Variables (gh variable set ... / Settings > Secrets and
 # variables > Actions > Variables) — populated by the Phase 7 installer:
 #   FORGE_PROJECT_ID        Project v2 node id   (gh project view <n> --owner <o> --format json -> .id)
-#   FORGE_STATUS_FIELD_ID   `Status` field id    (ProjectV2SingleSelectField.id)
+#   FORGE_STATUS_FIELD_ID   `Forge Status` field id  (ProjectV2SingleSelectField.id; custom field, not built-in "Status")
 #   FORGE_OPT_READY         option id for "Ready"
 #   FORGE_OPT_FORGING       option id for "Forging"
 #   FORGE_OPT_IN_REVIEW     option id for "In Review"
