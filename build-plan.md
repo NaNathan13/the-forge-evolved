@@ -191,7 +191,7 @@ glossary lazy, not inlined.
 - [x] **Step 1: Write `.claude/agents/forge-researcher.md`.** Read-only tools only (no Edit/Write/Bash-mutating).
   Responsibility: take a focused question, fan out, return a **distilled** answer (no transcript dump). Frontmatter
   sets read-only tool list + model. (D24)
-- [ ] **Step 2: Rewrite `ponder/SKILL.md`.** Required behaviors:
+- [x] **Step 2: Rewrite `ponder/SKILL.md`.** Required behaviors:
   - Runs a grill-me-style, one-question-at-a-time interview to define/refine the idea (D2).
   - May dispatch `forge-researcher` for unknowns (confirm before heavy fan-out).
   - **Self-checkpoints context:** at ~35% writes a distilled handoff to `.claude/forge/handoff.md` and tells the
@@ -199,18 +199,20 @@ glossary lazy, not inlined.
   - **Ends by proposing the issue breakdown** — titles, scope, the UI/logic split, each issue's verification
     method (`verify:test` | `verify:visual`) and machine-checkable acceptance criteria — and asks for one-word
     confirmation before any GitHub write (D2, D9). On "go", invokes inscribe.
-- [ ] **Step 3: Rewrite `inscribe/SKILL.md`.** On confirmation:
+- [x] **Step 3: Rewrite `inscribe/SKILL.md`.** On confirmation:
   - Documents the worked-out knowledge where it belongs (project docs / CLAUDE.md); appends a lesson to
     `.knowledge/lessons.md` only if a hard-won reusable fact emerged (high bar — D13).
   - Creates each GitHub issue: `gh issue create` with a body containing **machine-checkable acceptance criteria**;
     applies labels `status:ready`, `verify:test`|`verify:visual` (D9, D15); adds it to the project board
     (`gh project item-add`).
   - Triages/orders the issues (dependency order: logic before dependent UI) and reports the created issue numbers.
-- [ ] **Step 4: Verify** (on a throwaway test repo with a board, or `--dry-run` style):
+- [x] **Step 4: Verify** (on a throwaway test repo with a board, or `--dry-run` style):
   ponder on a toy idea proposes a breakdown and stops for confirmation; on "go", inscribe creates issues whose
   bodies contain acceptance criteria and that carry `status:ready` + a `verify:*` label. Check:
   `gh issue list --label status:ready` shows them.
-- [ ] **Step 5: Commit.** `git commit -am "feat: ponder (grill+research) and inscribe (docs+issues)"`.
+  *(Done as per-criterion read-only review of both skills against the spec — all 11 PASS. Live ponder→inscribe
+  run on a real board is folded into the Phase 8 dogfood, since the board is stood up by the Phase 7 installer.)*
+- [x] **Step 5: Commit.** `git commit -am "feat: ponder (grill+research) and inscribe (docs+issues)"`.
 
 **Delivers:** idea → confirmed → GitHub issues with criteria + labels. **Verify:** breakdown gate fires; issues
 created with correct labels/criteria.
