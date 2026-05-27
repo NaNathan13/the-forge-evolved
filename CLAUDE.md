@@ -1,49 +1,47 @@
-# The Forge Core
+# The Forge Evolved
 
-A four-phase workflow for Claude Code: **Ponder → Forge → Temper → Seal** — think it, build it, harden it, finish it. All planning and progress lives in markdown plan files under `.claude/plans/` — `active/` for in-flight work, `done/` for finished. No GitHub issues, no PRs, no orchestration. The build runs inline on your branch; read-only subagents may **gather** (research) or **judge** (cold review) and report back, but never write code or own a phase. One workflow, run inline.
+A per-project, GitHub-native Claude Code workflow: **ponder → inscribe → forge**. Plan an idea into
+issues, then autonomously drain an approved batch (build → review → merge) with enforced context
+discipline. This repo is both the workflow's source and what the installer drops into target projects.
 
-This repo is both the working source of the workflow AND something you can drop into any project (via the install script).
+## Commands
 
-## The loop
+- `/ponder` — grill a fuzzy idea into shared understanding (research as needed); ends by proposing the
+  issue breakdown for one-word approval.
+- `/inscribe` — on approval, document the knowledge and create the GitHub issues (labels + machine-checkable
+  acceptance criteria + board card).
+- `/forge` — read the `status:ready` issues, propose the batch, and on approval drain it autonomously
+  (build → review → merge per issue), then stop and report.
 
-```
-Ponder ─┬ /ponder    grill the idea into shared understanding (lean on /research at an unknown)
-        └ /inscribe  write the sliced plan to .claude/plans/active/<slug>.md
-Forge ─── /forge     build the whole plan inline, ticking off slices
-Temper ── /temper    review + harden what was built; send weak slices back
-Seal ──── /seal      confirm done, move the plan to .claude/plans/done/
-```
+Use them sequentially. Don't `/forge` without ready issues — `/ponder` then `/inscribe` fill the queue first.
 
-Four phases. The Ponder phase runs two commands (`/ponder` then `/inscribe`); the rest are one each.
+## Context discipline (CRITICAL)
 
-State = `ls .claude/plans/active/`. That's the whole ledger.
+- **Warn at 30%, hard-stop at 40%** of the context window. The statusline shows the gauge; the `ctx-gate`
+  PreToolUse hook *enforces* it (denies tool calls at ≥40%). A real gate, not a label.
+- At the hard stop: **write/refresh the handoff, then `/clear` and re-run the command.** Don't push past it.
+- State lives in **GitHub issues/labels + git + `.claude/forge/loop-state`** — so resume is just `/clear`
+  then re-run the command; it reads the board and picks up the next issue.
+- Skills self-check at safe points and hand off proactively (~35%) to avoid being blocked mid-action.
 
-## Tech stack
+## Architecture quirks
 
-- **Language / runtime:** Markdown + Bash (the workflow itself has no runtime).
-- **Check command:** `bash -n` on changed shell scripts.
-- **Git:** local version control only. Work happens in place on the current branch; phases commit at their natural end. No branches per slice, no pushing, no GitHub coupling.
+- **Thin orchestrator + fresh subagents.** `/forge` holds only the batch list + a 1-line status per issue;
+  each issue gets a fresh builder and a fresh, independent reviewer. Orchestrator context stays flat, so the
+  30/40 rule is structural, not a constant fight.
+- **The reviewer is read-only and a different model** than the builder — it structurally cannot edit code to
+  make it pass.
+- **Use absolute paths in Bash.** The working directory resets between tool calls.
+- **Skills load on demand** when their `/command` runs; role-based agents live in `.claude/agents/`.
+- **Keep this file <100 lines.** Only CLAUDE.md loads every session — push detail to skills, glossary to
+  CONTEXT.md, lessons to `.knowledge/`. Avoid `@imports` (they also load at startup).
 
-## Key terms
+## Response Style
+- Concise. No preamble, no "I'll now..." narration.
+- No explanations unless asked. Skip recaps of completed work.
+- Code only when showing actual code, not summaries.
+- When a task is done, end. No "let me know if..." closers.
+- If I flag a mistake, fix it without re-asking or apologizing.
 
-See [`CONTEXT.md`](./CONTEXT.md). The essentials:
-
-- **Plan** — one markdown file in `.claude/plans/active/<slug>.md`, sliced into parts, with a progress block near the top.
-- **Slice** — one coherent chunk of a plan; a checklist item plus a `## Slice N:` detail section.
-- **The four phases** — Ponder (think), Forge (build), Temper (review), Seal (finish). The Ponder phase ends with `/inscribe`, which writes the sliced plan.
-
-## Rules
-
-- **Work in place.** No branch-per-slice, no remote pushes. Commit at the end of each phase.
-- **The plan file is the only state.** No issue tracker, no Mission Control, no labels.
-- **Keep the progress block current.** `/forge` and `/temper` tick / un-tick slices and re-render the bar.
-- **Stay in scope.** Build what the slices describe; don't add features or refactor beyond them.
-
-## Context loading
-
-| Layer | Source | When |
-|---|---|---|
-| Always | this file | session start |
-| Glossary | `CONTEXT.md` | reactively when a term is unclear |
-| Plans | `.claude/plans/active/*.md` | when a phase runs |
-| Skill | `.claude/skills/<name>/SKILL.md` | when its `/command` is invoked |
+---
+See CONTEXT.md for glossary (load on demand). See `.knowledge/lessons.md` (skill-fed).
