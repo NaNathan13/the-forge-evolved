@@ -83,23 +83,23 @@ breakers); `instructions-loaded.jsonl` + its hook; `MISSION-CONTROL.md`; ADRs; t
 
 **Files:** copy `../the-forge-core/*` (minus `.git`) into repo root; then prune.
 
-- [ ] **Step 1: Copy the Core (minus its git history).** D22.
+- [x] **Step 1: Copy the Core (minus its git history).** D22.
   Run: `rsync -a --exclude='.git' ../the-forge-core/ ./` (from repo root). The planning docs already here
   (`vision.md`, `findings.md`, `build-plan.md`, `research/`) must be preserved — `rsync` without `--delete`
   is safe.
-- [ ] **Step 2: Initialize fresh git history.**
+- [x] **Step 2: Initialize fresh git history.** *(on branch `build/bootstrap`, never main)*
   Run: `git init && git add -A && git commit -m "chore: scaffold from forge-core (minus history)"`
   Expected: clean repo, one commit, no Core history.
-- [ ] **Step 3: Rename `light-the-core` → `light-the-forge`** (script + skill dir) and update internal refs.
+- [x] **Step 3: Rename `light-the-core` → `light-the-forge`** (script + skill dir) and update internal refs.
   Run: `git mv light-the-core.sh light-the-forge.sh` and `git mv .claude/skills/light-the-core .claude/skills/light-the-forge`.
-- [ ] **Step 4: Delete the cut skills.**
+- [x] **Step 4: Delete the cut skills.**
   Run: `rm -rf .claude/skills/{grill-me,temper,seal}` *(temper/seal become internal stages, not commands — D16;
   grill-me absorbed into ponder — D17)*. The Core has no triage/prototype/tinker/examine/rollback/write-a-skill,
   so confirm none exist: `ls .claude/skills`.
-- [ ] **Step 5: Create the new empty dirs/files** the later phases fill:
+- [x] **Step 5: Create the new empty dirs/files** the later phases fill:
   `mkdir -p .claude/agents .claude/hooks .claude/forge .knowledge .github/workflows docs templates` and
   `touch .knowledge/lessons.md`.
-- [ ] **Step 6: Verify + commit.**
+- [x] **Step 6: Verify + commit.**
   Check: `ls .claude/skills` shows exactly `ponder inscribe forge research diagnose scrub sharpen light-the-forge`.
   Commit: `git commit -am "chore: prune to the Evolved skill set"`.
 
