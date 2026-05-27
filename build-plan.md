@@ -177,7 +177,7 @@ glossary lazy, not inlined.
   Run: `echo 28 > .claude/forge/.ctx && bash .claude/hooks/ctx-gate.sh` → Expected: `{}`.
   Run: `echo '{"context_window":{"used_percentage":31.4},"model":{"display_name":"Opus"}}' | bash .claude/statusline.sh`
   → Expected: `WARN 31%`; and `cat .claude/forge/.ctx` → `31`.
-- [ ] **Step 5: Commit.** `git commit -am "feat: context-discipline statusline + hard-stop hook"`.
+- [x] **Step 5: Commit.** `git commit -am "feat: context-discipline statusline + hard-stop hook"`.
 
 **Delivers:** a *real* 30/40 gate (not display-only — D10). **Verify:** deny at 41, allow at 28, % file written.
 
@@ -188,7 +188,7 @@ glossary lazy, not inlined.
 **Files:** Rewrite `.claude/skills/ponder/SKILL.md`, `.claude/skills/inscribe/SKILL.md`; create
 `.claude/agents/forge-researcher.md`. D2, D9, D24.
 
-- [ ] **Step 1: Write `.claude/agents/forge-researcher.md`.** Read-only tools only (no Edit/Write/Bash-mutating).
+- [x] **Step 1: Write `.claude/agents/forge-researcher.md`.** Read-only tools only (no Edit/Write/Bash-mutating).
   Responsibility: take a focused question, fan out, return a **distilled** answer (no transcript dump). Frontmatter
   sets read-only tool list + model. (D24)
 - [ ] **Step 2: Rewrite `ponder/SKILL.md`.** Required behaviors:
@@ -247,11 +247,11 @@ created with correct labels/criteria.
 **Files:** Create `.claude/agents/forge-builder.md`, `.claude/agents/forge-reviewer.md`; rewrite
 `.claude/skills/forge/SKILL.md`. D5, D6, D7, D8, D12, D15, D18, D19, D24.
 
-- [ ] **Step 1: Write `.claude/agents/forge-builder.md`.** Tools: Edit/Write/Bash/test-run. Responsibility: given
+- [x] **Step 1: Write `.claude/agents/forge-builder.md`.** Tools: Edit/Write/Bash/test-run. Responsibility: given
   one issue (criteria + repo + relevant `.knowledge/lessons.md`), implement it on the current branch, add tests
   if `verify:test`, return a **distilled** summary + the changed files + a "too-large" signal if it approached its
   context limit (D12). Frontmatter notes: on retry rounds the orchestrator restricts test-file writes (D8).
-- [ ] **Step 2: Write `.claude/agents/forge-reviewer.md`.** Tools: **READ-ONLY** (read + `git diff`, no edit —
+- [x] **Step 2: Write `.claude/agents/forge-reviewer.md`.** Tools: **READ-ONLY** (read + `git diff`, no edit —
   structural enforcement, D8/D24). Different model than builder. Input: the issue's acceptance criteria + the
   diff, *nothing else*. Output: per-criterion `PASS|FAIL` with a cited diff line + one-sentence evidence; a FAIL
   without a citation is auto-ignored; APPROVE only if all PASS. Prompt framing: "find every way this diff fails
