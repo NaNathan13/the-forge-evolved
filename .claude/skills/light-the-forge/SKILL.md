@@ -1,87 +1,76 @@
 ---
 name: light-the-forge
-description: Bootstrap a project on The Forge Evolved — copy skills, agents, hooks, settings, and templates into the target repo, then set up the GitHub board/labels/sync. Use when the user says "install the forge into this project", "light the forge", "set up The Forge Evolved here", or "/light-the-forge". (Full installer behavior is built in Phase 7.)
+description: Stand up The Forge Evolved on a target repo — runs light-the-forge.sh to install the kit and provision the GitHub board, labels, sync workflow, repo variables, and PAT secret. Use when the user says "light the forge", "install The Forge Evolved here", "set up the forge on this repo", or "/light-the-forge".
 ---
 
-# Light the Core
+# Light the Forge
 
-The bootstrap skill for a fresh project adopting **The Forge Core** — the stripped-down variant where state lives in `.claude/plans/active/<slug>.md` files instead of GitHub issues + a Mission Control doc.
+Conversational wrapper around `light-the-forge.sh`. The script does all the file copying and `gh` provisioning; this skill confirms the target, runs the script, and walks the user through the two steps that genuinely need a human: the **`project` auth scope** and the **classic-PAT secret**.
 
-This skill is a thin wrapper around `light-the-core.sh`. The shell script does the file copying; this skill confirms the target, runs the script, and reports what landed.
-
-**Audience matters.** The user has just decided they want Core in this project. Keep it tight: confirm the target, copy the kit, then a short three-question setup to fill in the project docs. No GitHub setup, no dev-mode, no ceremony beyond those three questions.
+Do **not** re-implement the copy/board/label logic here — that's the script's job. Run it, stream its output, and help when it halts.
 
 ## Preconditions
 
-Before running the installer:
-
-- We have a target directory. By default it's `$(pwd)`. If the user names a path, use it.
-- The target does **not** already have `.claude/plans/` — Core refuses to overwrite an existing install. (Detected by the script; surface its message cleanly if it refuses.)
+- A target directory (default `$(pwd)`) that is a **GitHub repo** with an `origin` remote (the script resolves it via `gh repo view`; if it can't, it stops).
+- `gh`, `git`, and `jq` on PATH; `gh` authenticated with the **`project`** scope.
+- The script is idempotent: it won't overwrite an existing `CLAUDE.md`/`CONTEXT.md`, won't duplicate labels, and merges (not clobbers) `.claude/settings.json`.
 
 ## Workflow
 
 ### 1. Confirm the target
 
-Ask once via AskUserQuestion (skip if the user invoked with an explicit path):
+Ask once (skip if the user gave an explicit path):
 
-> Install Core into `<current-dir>`? Options:
-> - **Yes, install here** (Recommended)
-> - **Different path** — freeform follow-up
-> - **Cancel**
+> Install The Forge Evolved into `<current-dir>` (repo `<owner/name>`)? Yes / different path / cancel.
 
-On `Cancel`, stop.
+On cancel, stop.
 
 ### 2. Run the installer
 
-Install into the target with the one-step command — it fetches Core and installs, no clone needed:
+From a local checkout of the-forge-evolved (preferred):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-core/main/light-the-core.sh | bash -s -- <target-dir>
+<path-to>/light-the-forge.sh <target-dir>
 ```
 
-If a local checkout is already on hand (e.g. you're running from inside the Core repo), run `<path>/light-the-core.sh <target-dir>` instead — same result, no fetch.
+Or, once the repo is published, the one-liner self-fetches the kit:
 
-Stream its output to the user. The script prints what it copied; don't duplicate that summary. If it exits non-zero (target already has `.claude/plans/`, no network, git missing), surface its stderr verbatim and stop.
-
-### 3. Fill in the project docs
-
-The installer drops `CLAUDE.md`, `CONTEXT.md`, and `README.md` with `<placeholder: ...>` markers. Ask three questions — as a short batch, freeform answers (not multiple-choice) — then write the answers into the docs:
-
-1. **Project name?**
-2. **What is this project, in one line?**
-3. **Tech stack** — language/runtime, framework (or "none"), test runner, and the **check command** (the command that lints/tests the project; `/forge` and `/temper` run it).
-
-Then edit the placeholder lines in the target docs — and *only* those lines, leaving the rest of each template intact:
-
-- `<target>/CLAUDE.md`
-  - `# <placeholder: project-name>` → `# <name>`
-  - `One-line description of what this project is.` → the one-liner
-  - the four `## Tech stack` rows → the stack answers (put the check command in the `**Check command:**` row)
-  - the `- <placeholder: any project-specific hard rules …>` bullet → `- (add project-specific rules here as they emerge)`
-- `<target>/CONTEXT.md`: `# CONTEXT — <placeholder: project-name>` → `# CONTEXT — <name>`
-- `<target>/README.md`: `# <placeholder: project-name>` → `# <name>`, and the one-line description.
-
-If the installer **skipped** a doc because it already existed (the user had their own), leave that doc alone — don't overwrite their content with answers.
-
-### 4. Report the outcome
-
-If the script exited 0, print:
-
-```
-The Core is lit.
-
-Target:        <target-dir>
-Plans live in: <target-dir>/.claude/plans/active/
-Docs:          CLAUDE.md, CONTEXT.md, README.md (filled in from your answers)
-
-Next: /ponder
+```bash
+curl -fsSL https://raw.githubusercontent.com/OWNER/the-forge-evolved/main/light-the-forge.sh | bash -s -- <target-dir>
 ```
 
-If the script exited non-zero (target already has `.claude/plans/`, target doesn't exist, permission error), surface the script's stderr verbatim and stop.
+The script prompts (on `/dev/tty`) for: project name, one-line description, test / type-check / lint commands, and the board owner. It then handles auth-check → copy kit → board → labels → IDs/variables → PAT secret → settings.json. Stream its output; don't re-summarize the file list it already prints.
+
+### 3. Help past the auth-scope halt (if it fires)
+
+If the script stops with **"missing the 'project' scope"**, relay the fix plainly:
+
+```bash
+gh auth refresh -s project
+```
+
+Then re-run the installer. Make sure the user understands the runtime requirement it states: the sync workflow needs a **classic** PAT with the `project` scope — **fine-grained PATs do not support Projects v2**, and the Actions `GITHUB_TOKEN` cannot touch Projects v2 at all. (This auth check is for the install step; the PAT secret is step 4 below.)
+
+### 4. Help with the classic-PAT secret
+
+Near the end the script asks for the **classic PAT** to store as the `FORGE_PROJECT_PAT` repo secret. Guide the user:
+
+- Create one at <https://github.com/settings/tokens> → **Tokens (classic)** → scope **`project`** (add **`repo`** for a private target repo).
+- Paste it at the hidden prompt, **or** skip and set it later:
+  ```bash
+  gh secret set FORGE_PROJECT_PAT --repo <owner/name>
+  ```
+- Until this secret exists, the labels→board sync workflow will not run. The rest of the install (board, labels, variables, kit) is already in place.
+
+### 5. Report the outcome
+
+On exit 0, echo the script's summary essentials: board URL, the labels created, the repo variables set (`FORGE_PROJECT_ID`, `FORGE_STATUS_FIELD_ID`, the five `FORGE_OPT_*`), whether the PAT secret landed, and the kit files installed. Then point them at the next step: **`/ponder`**.
+
+On non-zero exit (target not a GitHub repo, missing `gh`/`git`/`jq`, board creation failed, auth halt), surface the script's stderr verbatim and stop — do not paper over a partial install.
 
 ## Anti-patterns
 
-- **Don't inline the file-copy logic.** That's `light-the-core.sh`'s job. This skill just runs the script; it does not duplicate it.
-- **Keep the Q&A to the three setup questions.** Name, one-liner, tech stack — that's it. No dev-mode, no GitHub repo creation, no labels. `/light-the-forge`'s longer interview is exactly what Core avoids.
-- **Don't overwrite the user's `CLAUDE.md` / `CONTEXT.md` / `README.md`.** The installer already declines to clobber existing root docs; never paper over that.
-- **Don't `git init` or create a GitHub repo.** Core is plan-files-on-disk; remote setup is the user's call.
+- **Don't inline the copy/board/label logic.** This skill runs `light-the-forge.sh`; it never duplicates it.
+- **Don't overwrite the user's `CLAUDE.md` / `CONTEXT.md`.** The script already skips existing docs; never work around that.
+- **Don't invent IDs or string-edit `sync-board.yml`.** The workflow reads everything from the repo variables/secret the script sets; the file is copied as-is.
+- **Don't suggest a fine-grained PAT** for `FORGE_PROJECT_PAT` — it cannot drive Projects v2. Classic PAT only.
