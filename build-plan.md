@@ -146,7 +146,7 @@ glossary lazy, not inlined.
 
 **Files:** Create `.claude/statusline.sh`, `.claude/hooks/ctx-gate.sh`; modify `.claude/settings.json`. D10, D11.
 
-- [ ] **Step 1: Write `.claude/statusline.sh`.** Reads statusline JSON on stdin; extracts
+- [x] **Step 1: Write `.claude/statusline.sh`.** Reads statusline JSON on stdin; extracts
   `.context_window.used_percentage`; writes the integer to `.claude/forge/.ctx`; prints a gauge.
   ```bash
   #!/usr/bin/env bash
@@ -158,7 +158,7 @@ glossary lazy, not inlined.
   elif [ "$pct" -ge 30 ]; then printf '\033[43m WARN %s%% \033[0m %s' "$pct" "$model"
   else printf 'ctx %s%% ▸ warn 30/hard 40  %s' "$pct" "$model"; fi
   ```
-- [ ] **Step 2: Write `.claude/hooks/ctx-gate.sh`** (PreToolUse). Reads `.claude/forge/.ctx`; at ≥40 returns a
+- [x] **Step 2: Write `.claude/hooks/ctx-gate.sh`** (PreToolUse). Reads `.claude/forge/.ctx`; at ≥40 returns a
   deny decision with a handoff instruction; else allows.
   ```bash
   #!/usr/bin/env bash
@@ -170,9 +170,9 @@ glossary lazy, not inlined.
   JSON
   else echo '{}'; fi
   ```
-- [ ] **Step 3: Register both in `.claude/settings.json`** — `statusLine.command` → `.claude/statusline.sh`;
+- [x] **Step 3: Register both in `.claude/settings.json`** — `statusLine.command` → `.claude/statusline.sh`;
   `hooks.PreToolUse[*]` matcher `*` → `.claude/hooks/ctx-gate.sh`. `chmod +x` both scripts.
-- [ ] **Step 4: Verify the gate.**
+- [x] **Step 4: Verify the gate.**
   Run: `echo 41 > .claude/forge/.ctx && bash .claude/hooks/ctx-gate.sh` → Expected: JSON with `"deny"`.
   Run: `echo 28 > .claude/forge/.ctx && bash .claude/hooks/ctx-gate.sh` → Expected: `{}`.
   Run: `echo '{"context_window":{"used_percentage":31.4},"model":{"display_name":"Opus"}}' | bash .claude/statusline.sh`
