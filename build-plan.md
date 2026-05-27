@@ -351,7 +351,7 @@ path both observed end-to-end.
 
 **Files:** Create `docs/how-the-forge-evolved-works.md`; update `README.md`.
 
-- [ ] **Step 1: Write ONE canonical doc** (`docs/how-the-forge-evolved-works.md`) — the only narrative doc
+- [x] **Step 1: Write ONE canonical doc** (`docs/how-the-forge-evolved-works.md`) — the only narrative doc
   (anti-Forge-sprawl: no at-a-glance + how-it-works + workflow + meta-doc-about-docs). Cover the 3 commands, the
   loop, the board, context discipline, escalation. Keep `README.md` to a short pointer.
 - [ ] **Step 2: Dogfood** the full loop on a small real feature in a sandbox project: ponder → inscribe → forge a
