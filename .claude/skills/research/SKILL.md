@@ -3,7 +3,7 @@ name: research
 description: Go find out what the work needs to know — read the codebase, look things up, and for genuinely novel unknowns fan out parallel subagents across sources. Use when a question can't be answered from what's already known, or when the user says "research this", "go find out", "look into", "go deep on". Leaned on by /ponder.
 ---
 
-Research answers a question the conversation can't answer on its own. It **gathers and reports** — it never edits code or writes plan files. Findings go back to whoever called it (usually the `/ponder` session), which decides what to do with them.
+Research answers a question the conversation can't answer on its own. It **gathers and reports** — it never edits code or writes anything outward (no issues, no docs). Findings go back to whoever called it (usually the `/ponder` session), which decides what to do with them.
 
 There's one dial: **light** (the default) or **deep**.
 
@@ -25,6 +25,6 @@ Only fan out once the operator says yes. Then emit: `deep-researching: <question
 
 ## Rules
 
-- **Read-only.** Research gathers; it does not edit code or write anything under `.claude/plans/`.
+- **Read-only.** Research gathers; it does not edit code, create issues, or write docs — that's `/inscribe`'s job.
 - **Report, don't store.** Hand findings back to the caller — key facts and source links, distilled, not a transcript dump. `/inscribe` is what records the ones that matter.
 - **Light by default.** Reach for deep only when the unknown genuinely warrants it, and never without confirming first.
