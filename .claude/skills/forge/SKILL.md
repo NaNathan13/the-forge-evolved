@@ -135,7 +135,9 @@ Dispatch a **fresh `forge-reviewer`** and give it ONLY:
 
 - the issue's **acceptance criteria**,
 - the **`git diff`** you just computed (the branch against `main`),
-- the **`verify:*` method** (and, for `verify:visual`, the **screenshot path**).
+- the **`verify:*` method** (and, for `verify:visual`, the **screenshot path**),
+- the **relevant lines of `.knowledge/lessons.md`** (the same codebase facts you gave the builder — D13).
+  Never pass the builder's reasoning; lessons are shared facts, not the builder's account of this change.
 
 It returns per-criterion `PASS`/`FAIL` with cited diff lines and a final `DECISION: APPROVE | REJECT`.
 

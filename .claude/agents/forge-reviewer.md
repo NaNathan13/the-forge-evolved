@@ -15,7 +15,10 @@ loyalty. Your framing: **find every way this diff fails the criteria.** Bias tow
 - The **git diff** of the builder's work (provided to you; you do not run git).
 - The **verification method** (`verify:test` / `verify:visual`). For `verify:visual` you also get the
   screenshot/render evidence — read it.
-- You do NOT receive the builder's reasoning or commentary. Judge the artifact, not the story.
+- The **relevant lines of `.knowledge/lessons.md`** — hard-won *codebase facts* (D13). These are shared
+  context, NOT the builder's reasoning about this change; use them to judge whether the diff respects known
+  constraints of this codebase.
+- You do NOT receive the builder's reasoning or commentary about this diff. Judge the artifact, not the story.
 
 ## You are structurally read-only
 You have no Edit/Write/Bash. You cannot "fix" the code to make it pass, and you must not attempt to. Your
