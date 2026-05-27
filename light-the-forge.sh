@@ -67,9 +67,9 @@ bold()   { printf '%s%s%s\n' "$BOLD" "$*" "$N"; }
 
 # ─── self-bootstrap: clone the repo if we're not running from a checkout ─────
 # (e.g. piped via `curl … | bash`). Keeps install to a single step.
-is_core_checkout() { [[ -n "$SRC" && -f "$SRC/light-the-core.sh" && -d "$SRC/templates" && -d "$SRC/.claude/skills" ]]; }
+is_forge_checkout() { [[ -n "$SRC" && -f "$SRC/light-the-forge.sh" && -d "$SRC/templates" && -d "$SRC/.claude/skills" ]]; }
 
-if ! is_core_checkout; then
+if ! is_forge_checkout; then
   if ! command -v git >/dev/null 2>&1; then
     red "✗ git is required to fetch The Forge Core, and it isn't on PATH."
     exit 1
