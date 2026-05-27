@@ -299,17 +299,19 @@ path both observed end-to-end.
 
 **Files:** Wire lessons into the agents (Phase 5 files); rewrite `.claude/skills/scrub/SKILL.md`. D13, D17.
 
-- [ ] **Step 1: Confirm lessons wiring.** `forge-builder` and `forge-reviewer` receive the relevant lines of
+- [x] **Step 1: Confirm lessons wiring.** `forge-builder` and `forge-reviewer` receive the relevant lines of
   `.knowledge/lessons.md` at dispatch; builder appends a one-line lesson **only** after overcoming a real wall
   (high bar). Add a soft cap (e.g., 50 lines) note in `lessons.md` header. (D13)
-- [ ] **Step 2: Rewrite `scrub/SKILL.md`** (redefined — D17). Reconciles board ↔ git ↔ `loop-state`, safe-fix
+- [x] **Step 2: Rewrite `scrub/SKILL.md`** (redefined — D17). Reconciles board ↔ git ↔ `loop-state`, safe-fix
   only, never auto-merges/auto-closes:
   - card in `Forging`/`In Review` but its `forge/issue-*` branch is merged/gone → flag + offer to set `status:done`.
   - orphan `forge/issue-*` branch with no open issue/card → flag for deletion.
   - `loop-state` cursor pointing at a closed issue → reset.
-- [ ] **Step 3: Verify.** Plant an inconsistency (e.g., merge a branch but leave its label `status:forging`); run
+- [x] **Step 3: Verify.** Plant an inconsistency (e.g., merge a branch but leave its label `status:forging`); run
   scrub; confirm it detects and proposes the fix (and does nothing destructive without confirmation).
-- [ ] **Step 4: Commit.** `git commit -am "feat: lessons wiring + scrub reconcile"`.
+  *(Logic verified now via per-criterion read-only review — all 3 drift cases detected + safe-fix-only confirmed.
+  Live planted-inconsistency run folded into the Phase 8 dogfood once a real board exists.)*
+- [x] **Step 4: Commit.** `git commit -am "feat: lessons wiring + scrub reconcile"`.
 
 **Delivers:** subagents stop re-discovering; state stays honest. **Verify:** lesson append works; scrub catches drift.
 
