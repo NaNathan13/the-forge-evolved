@@ -321,7 +321,7 @@ path both observed end-to-end.
 
 **Files:** Rewrite `light-the-forge.sh` + `.claude/skills/light-the-forge/SKILL.md`. D17, D22, D15.
 
-- [ ] **Step 1: Write `light-the-forge.sh`** to bootstrap a *target* project. Steps it performs:
+- [x] **Step 1: Write `light-the-forge.sh`** to bootstrap a *target* project. Steps it performs:
   - Ask setup questions (project name; `{{TEST_CMD}}`, `{{TYPECHECK_CMD}}`, `{{LINT_CMD}}`; board owner).
   - **Auth check:** `gh auth status`; verify `project` scope present; if not, instruct `gh auth refresh -s project`
     and that a **classic** PAT is required (fine-grained PATs don't support Projects v2 — D15). Halt until satisfied.
@@ -333,11 +333,15 @@ path both observed end-to-end.
   - **Fetch the IDs** (project node id, Status field id, option ids) and write them into the repo's
     `.github/workflows/sync-board.yml` + repo variables/secrets; install the PAT secret for the workflow.
   - Register statusline + `ctx-gate` hook in the target `.claude/settings.json`.
-- [ ] **Step 2: Write `.claude/skills/light-the-forge/SKILL.md`** — the in-Claude-Code entry that runs the script
+- [x] **Step 2: Write `.claude/skills/light-the-forge/SKILL.md`** — the in-Claude-Code entry that runs the script
   and walks the user through the auth/board steps conversationally.
-- [ ] **Step 3: Verify** on a fresh empty test repo: run the installer → board with the 6 columns exists, labels
+- [~] **Step 3: Verify** on a fresh empty test repo: run the installer → board with the 6 columns exists, labels
   exist, `sync-board.yml` present with IDs filled, skills/agents/hooks installed, a label change moves a card.
-- [ ] **Step 4: Commit.** `git commit -am "feat: light-the-forge installer (board+labels+sync+skills)"`.
+  *(Static verification done: `bash -n` + `shellcheck` clean; `gh` subcommands/flags audited against gh 2.89.0;
+  settings.json merge empirically tested in /tmp (preserves an existing PreToolUse hook + statusLine + permissions,
+  dedups on re-run). LIVE run creates outward-facing GitHub resources + needs a classic PAT → it IS the Phase 8
+  dogfood, pending user authorization.)*
+- [x] **Step 4: Commit.** `git commit -am "feat: light-the-forge installer (board+labels+sync+skills)"`.
 
 **Delivers:** one command stands up the whole workflow on a new repo. **Verify:** end-to-end install on a clean repo.
 
