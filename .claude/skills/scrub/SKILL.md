@@ -16,6 +16,21 @@ confirmation. See Rules.
 
 Runs inline. No subagents.
 
+## Where the code and board live (read this FIRST)
+
+Split layout: Claude runs from the **outer project folder**; the app code + git history live in a
+**subfolder**, which is the only thing on GitHub. The installer wrote the coordinates to `.claude/forge/config`:
+
+```bash
+cat .claude/forge/config    # defines APP_DIR (app subfolder) + REPO_SLUG (owner/name) + BOARD_OWNER, PROJECT_NUMBER
+```
+
+- **Every `git` command targets the app repo:** `git -C "$APP_DIR" …`.
+- **Every `gh` command targets the app repo:** add `--repo "$REPO_SLUG"`.
+- **`.claude/forge/loop-state`** is in the OUTER folder — read/edit it with its plain relative path.
+
+`source .claude/forge/config` at the start of each Bash block that uses `$APP_DIR`/`$REPO_SLUG`.
+
 ## How it proceeds
 
 1. **Gather** the three state sources.
@@ -26,16 +41,18 @@ Runs inline. No subagents.
 ## 1. Gather the three state sources
 
 ```bash
+source .claude/forge/config
+
 # (a) Board: every issue carrying a forge status label, open or closed
-gh issue list --state all --json number,title,state,labels \
+gh issue list --repo "$REPO_SLUG" --state all --json number,title,state,labels \
   --search "label:status:ready,status:forging,status:in-review,status:done,status:needs-human"
 
 # (b) Git: local forge branches, and which have landed on main
-git fetch --prune origin
-git branch --list 'forge/issue-*'
-git branch --merged main --list 'forge/issue-*'   # branches whose work is already on main
+git -C "$APP_DIR" fetch --prune origin
+git -C "$APP_DIR" branch --list 'forge/issue-*'
+git -C "$APP_DIR" branch --merged main --list 'forge/issue-*'   # branches whose work is already on main
 
-# (c) Loop-state: the cursor + per-issue work-branch, if a run is in flight
+# (c) Loop-state: the cursor + per-issue work-branch, if a run is in flight (OUTER folder)
 cat .claude/forge/loop-state 2>/dev/null
 ```
 
@@ -54,10 +71,11 @@ into `main`, or gone entirely** — the work actually landed, but the label neve
 interrupted between merge and the label move).
 
 ```bash
+source .claude/forge/config
 # Is issue <id>'s branch already on main?  (non-empty output = merged)
-git branch --merged main --list 'forge/issue-<id>' 'forge/issue-<id>-r*'
-git ls-remote --heads origin 'forge/issue-<id>*'   # empty = branch is gone (likely merged + deleted)
-gh issue view <id> --json number,state,labels       # confirm the card is still stuck in forging/in-review
+git -C "$APP_DIR" branch --merged main --list 'forge/issue-<id>' 'forge/issue-<id>-r*'
+git -C "$APP_DIR" ls-remote --heads origin 'forge/issue-<id>*'   # empty = branch is gone (likely merged + deleted)
+gh issue view <id> --repo "$REPO_SLUG" --json number,state,labels  # confirm the card is still stuck in forging/in-review
 ```
 
 If the branch is merged-or-gone AND the card is still `status:forging`/`status:in-review` → **stale card.**
@@ -68,14 +86,15 @@ A local `forge/issue-*` branch with **no matching open issue / no live board car
 closed/merged, or never existed.
 
 ```bash
-git branch --list 'forge/issue-*'        # extract <id> from each name
-gh issue view <id> --json number,state,labels 2>/dev/null \
+source .claude/forge/config
+git -C "$APP_DIR" branch --list 'forge/issue-*'        # extract <id> from each name
+gh issue view <id> --repo "$REPO_SLUG" --json number,state,labels 2>/dev/null \
   || echo "no such issue"               # missing, or state CLOSED with no active status:* → orphan
 ```
 
 A branch is an **orphan** when its issue is closed/merged or absent. Before offering deletion, check whether
-the branch is merged into `main` (`git branch --merged main --list 'forge/issue-<id>'`) — a **merged** orphan
-is safe to delete; an **unmerged** one holds work that would be lost.
+the branch is merged into `main` (`git -C "$APP_DIR" branch --merged main --list 'forge/issue-<id>'`) — a
+**merged** orphan is safe to delete; an **unmerged** one holds work that would be lost.
 
 ### C. Bad loop-state cursor
 
@@ -84,8 +103,9 @@ is safe to delete; an **unmerged** one holds work that would be lost.
 would re-process or stall on a finished issue.
 
 ```bash
+source .claude/forge/config
 # cursor value comes from the loop-state read in step 1
-gh issue view <cursor-id> --json number,state,labels
+gh issue view <cursor-id> --repo "$REPO_SLUG" --json number,state,labels
 ```
 
 Bad cursor when: the issue is `CLOSED`, or its label is `status:done` / `status:needs-human`, or it doesn't
@@ -117,10 +137,11 @@ Pair the add + remove (status labels are mutually exclusive — the sync workflo
 add). Remove whichever in-flight label the card carries:
 
 ```bash
+source .claude/forge/config
 # if the card is status:forging:
-gh issue edit <id> --add-label status:done --remove-label status:forging
+gh issue edit <id> --repo "$REPO_SLUG" --add-label status:done --remove-label status:forging
 # if the card is status:in-review:
-gh issue edit <id> --add-label status:done --remove-label status:in-review
+gh issue edit <id> --repo "$REPO_SLUG" --add-label status:done --remove-label status:in-review
 ```
 
 Only on confirmation. If you can't verify the branch truly landed (merged), say so and **do not offer
@@ -129,8 +150,9 @@ Only on confirmation. If you can't verify the branch truly landed (merged), say 
 ### B. Orphan branch → offer deletion (risk made explicit)
 
 ```bash
+source .claude/forge/config
 # merged orphan (safe): -d refuses if not actually merged
-git branch -d forge/issue-<id>
+git -C "$APP_DIR" branch -d forge/issue-<id>
 ```
 
 For an **unmerged** orphan, make the risk explicit — `-d` will refuse, and only `-D` force-deletes, which
@@ -138,7 +160,7 @@ For an **unmerged** orphan, make the risk explicit — `-d` will refuse, and onl
 
 ```bash
 # unmerged orphan — DESTRUCTIVE: forces deletion of unmerged work. Confirm the work is truly abandoned.
-git branch -D forge/issue-<id>
+git -C "$APP_DIR" branch -D forge/issue-<id>
 ```
 
 Always prefer `-d`. Only reach for `-D` after the human explicitly confirms the unmerged work is disposable.
@@ -158,6 +180,8 @@ End with a one-line summary: what was reconciled (with the user's yeses) and wha
 
 ## Rules
 
+- **Read `.claude/forge/config` first.** `git` → `git -C "$APP_DIR"`; `gh` → `gh … --repo "$REPO_SLUG"`.
+  loop-state lives in the outer folder.
 - **Read-mostly and advisory.** `/scrub` detects and offers; the human decides. Nothing changes without an
   explicit yes.
 - **NEVER destructive without confirmation. NEVER auto-merge or auto-close.** No `gh pr merge`, no

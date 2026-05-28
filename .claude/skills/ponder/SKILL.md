@@ -13,9 +13,15 @@ ponder → inscribe → forge      (ponder runs the interview + proposes the bre
 
 **Hard line: no code, no GitHub writes during ponder.** You are reaching understanding and proposing a breakdown. The only thing you may write is `.claude/forge/handoff.md` (the context checkpoint, below).
 
-## 0. Resume from handoff if one exists
+## 0. First run: read the seed (and resume from handoff if one exists)
 
-Check `.claude/forge/handoff.md` first. If it exists, read it, resume from where it left off (idea, decisions reached, open questions, next step), then continue the interview from that point. Don't re-litigate settled decisions.
+**Resume takes priority:** check `.claude/forge/handoff.md` first. If it exists, read it, resume from where it left off (idea, decisions reached, open questions, next step), then continue the interview from that point. Don't re-litigate settled decisions — skip the seed below.
+
+**Otherwise, this is a first run** — check `.claude/forge/seed.md`. The installer writes it from the answers you gave `light-the-forge`: the project description, and (if you asked for it) a `## Research first` note.
+
+- Read the seed for the **idea** (the description) — open the interview from it instead of a blank slate; don't re-ask what it already states.
+- If it has a `## Research first` section, that's your cue to do **initial prior-art research before grilling**: state in one line what you'll look into, then dispatch the **`forge-researcher`** subagent (see step 2) to survey how others solve this / best practices / what's out there. Fold its distilled answer into the opening questions — initial research often reshapes the build.
+- Once you've absorbed the seed, **retire it**: `rm .claude/forge/seed.md` so it doesn't re-trigger on a later run. (The worked-out idea now lives in your interview, and ultimately in the issues.)
 
 ## 1. Interview — ONE question at a time
 

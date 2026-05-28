@@ -3,6 +3,17 @@
 > Glossary. Loaded on demand, not every session. The Forge vocabulary is pre-seeded below — leave it alone
 > unless you genuinely diverge. Add your project's own terms under ## Project terms.
 
+## Layout terms
+
+**Outer / project folder**: Where Claude Code opens and the forge tooling lives (`.claude/`, `.knowledge/`,
+`CLAUDE.md`, `.claude/forge/`). Not a git repo, not pushed anywhere — durable state lives in GitHub + the app repo.
+
+**App dir** (`{{APP_DIR}}/`): The subfolder holding the actual code; the only thing on GitHub (repo
+**{{REPO_SLUG}}**). All `git` operations run there (`git -C {{APP_DIR}} …`).
+
+**Forge config** (`.claude/forge/config`): Written by `light-the-forge`. Holds `APP_DIR`, `REPO_SLUG`,
+`BOARD_OWNER`, `PROJECT_NUMBER` — the skills source it to know where to run `git`/`gh`.
+
 ## Workflow terms
 
 **Batch**: The set of `status:ready` issues `/forge` proposes to work in one run. You approve (and may trim)

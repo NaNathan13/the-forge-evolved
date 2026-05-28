@@ -135,18 +135,26 @@ own. See `.claude/skills/scrub/SKILL.md`.
 
 ## Install — `/light-the-forge`
 
-To stand the workflow up on a target repo, run **`/light-the-forge`** (a thin wrapper around
-`light-the-forge.sh`, also runnable directly). The script copies the kit (skills, agents, CLAUDE.md /
-CONTEXT.md starters — it won't clobber existing docs) and provisions the GitHub side: the Projects v2
-board, the `status:*` / `verify:*` labels, the `sync-board.yml` workflow, the repo variables the
-workflow reads (`FORGE_PROJECT_ID`, `FORGE_STATUS_FIELD_ID`, the `FORGE_OPT_*` option IDs), and the
-`FORGE_PROJECT_PAT` secret.
+The workflow uses a **split layout**: you run `light-the-forge.sh` from a new, empty **project folder**;
+it installs the forge kit *there* (skills, agents, hooks, statusline, `.knowledge/`, CLAUDE.md / CONTEXT.md
+starters) and **creates the app code as a `<name>-app/` subfolder** that is a fresh git repo pushed to
+GitHub — the only thing on GitHub. Claude Code opens the outer folder; the skills find the app repo via
+`.claude/forge/config` (`APP_DIR`, `REPO_SLUG`, `BOARD_OWNER`, `PROJECT_NUMBER`).
+
+Run **`/light-the-forge`** (a thin wrapper around `light-the-forge.sh`, also runnable directly, or via the
+`curl … | bash` one-liner in the README). It asks for the project name, owner, visibility, description, and
+an optional initial-research note, shows a confirm step, then provisions the GitHub side for the new app
+repo: the Projects v2 board, the `status:*` / `verify:*` labels, the `sync-board.yml` workflow (inside the
+app repo), the repo variables the workflow reads (`FORGE_PROJECT_ID`, `FORGE_STATUS_FIELD_ID`, the
+`FORGE_OPT_*` option IDs), and the `FORGE_PROJECT_PAT` secret. It aborts rather than clobber if the app
+folder or the target repo already exists.
 
 Two steps genuinely need a human:
 
 - The `gh` CLI must have the **`project`** auth scope (`gh auth refresh -s project`) for the install.
 - The sync workflow needs a **classic** PAT with the `project` scope stored as `FORGE_PROJECT_PAT`
-  (add `repo` for a private target). Fine-grained PATs cannot drive Projects v2; until the secret
+  (add `repo` for a private app repo). Fine-grained PATs cannot drive Projects v2; until the secret
   exists, the labels→board sync won't run, though the rest of the install is already in place.
 
-After a clean install, the next step is `/ponder`. See `.claude/skills/light-the-forge/SKILL.md`.
+After a clean install, open the project folder in Claude Code and run `/ponder` (it reads the seed the
+installer left). See `.claude/skills/light-the-forge/SKILL.md`.
