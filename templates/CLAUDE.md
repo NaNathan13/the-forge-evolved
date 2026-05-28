@@ -2,17 +2,28 @@
 
 {{PROJECT_ONE_LINER}}
 
-<!-- Installed by The Forge Evolved. Keep this file short — it loads every session.
-     The installer fills {{PROJECT_NAME}}, {{PROJECT_ONE_LINER}}, and the verification commands below. -->
+<!-- Installed by The Forge Evolved. Keep this file short — it loads every session. -->
+
+## Project layout (the split)
+
+You are in the **outer project folder** — the forge tooling lives here; Claude Code opens HERE. The actual
+app code is a subfolder and is the only thing on GitHub:
+
+- **App code:** `{{APP_DIR}}/`  (GitHub repo **{{REPO_SLUG}}**) — all `git` runs there: `git -C {{APP_DIR}} …`.
+- **Forge tooling + run-state (this folder, not pushed):** `.claude/`, `.knowledge/`, `.claude/forge/` (config,
+  loop-state). Coordinates live in `.claude/forge/config` (`APP_DIR`, `REPO_SLUG`, `BOARD_OWNER`, `PROJECT_NUMBER`).
 
 ## Verification commands (the forge loop's hard gates)
 
-- **Tests:** `{{TEST_CMD}}`
-- **Type-check:** `{{TYPECHECK_CMD}}`
-- **Lint:** `{{LINT_CMD}}`
+<!-- TODO: fill these once the app's stack exists (likely after the first scaffold issue is forged).
+     They run inside {{APP_DIR}}/. Leave a command blank if it's genuinely N/A to this project. -->
+
+- **Tests:** `TODO`
+- **Type-check:** `TODO`
+- **Lint:** `TODO`
 
 For `verify:test` issues these must all pass before review; the builder must add tests proving the criteria.
-A command genuinely not applicable to this project may be left blank.
+They run in `{{APP_DIR}}/`. A command genuinely not applicable to this project may be left blank.
 
 ## Commands
 
@@ -39,6 +50,8 @@ Use them sequentially. Don't `/forge` without ready issues — `/ponder` then `/
   each issue gets a fresh builder and a fresh, independent reviewer. The reviewer is **read-only and a
   different model** than the builder.
 - **Use absolute paths in Bash.** The working directory resets between tool calls.
+- **Code lives in `{{APP_DIR}}/`.** Run git there (`git -C {{APP_DIR}} …`) and target GitHub with
+  `gh … --repo {{REPO_SLUG}}`. The forge skills read this from `.claude/forge/config`.
 - **Skills load on demand**; role-based agents live in `.claude/agents/`. Keep this file lean.
 
 ## Building apps people will rely on

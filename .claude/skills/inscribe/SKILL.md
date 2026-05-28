@@ -13,6 +13,19 @@ ponder → inscribe → forge      (inscribe records the plan and fills the read
 
 If invoked standalone in a fresh context, read `.claude/forge/handoff.md` first to recover the idea, decisions, and slice breakdown.
 
+## Where things live (read the config first)
+
+The app code is a **subfolder** of this project folder, and it's the only thing on GitHub. The installer
+wrote the coordinates to `.claude/forge/config`:
+
+```bash
+cat .claude/forge/config    # defines APP_DIR, REPO_SLUG, BOARD_OWNER, PROJECT_NUMBER
+```
+
+Every `gh` command below targets the app repo — add `--repo "$REPO_SLUG"`. The project docs you edit in
+step 1 (CLAUDE.md / CONTEXT.md / `.knowledge/`) live in **this outer folder**, not in the app subfolder.
+`source .claude/forge/config` at the start of any Bash block that uses `$REPO_SLUG`/`$BOARD_OWNER`/`$PROJECT_NUMBER`.
+
 ## 1. Document the worked-out knowledge
 
 Put the knowledge where it belongs so `/forge` and future sessions reuse it instead of re-deriving it:
@@ -25,7 +38,8 @@ Put the knowledge where it belongs so `/forge` and future sessions reuse it inst
 Process slices in **dependency order** (logic/backend before the UI that depends on it). For each:
 
 ```bash
-gh issue create \
+source .claude/forge/config
+gh issue create --repo "$REPO_SLUG" \
   --title "<imperative title>" \
   --body "<scope + machine-checkable acceptance criteria>" \
   --label "status:ready" \
@@ -37,10 +51,11 @@ gh issue create \
 - Then add the issue to the project board:
 
 ```bash
-gh project item-add <project-number> --owner <owner> --url <issue-url>
+gh project item-add "$PROJECT_NUMBER" --owner "$BOARD_OWNER" --url <issue-url>
 ```
 
-(Capture the issue URL/number from `gh issue create` output; resolve the project/owner from repo config if not already known.)
+(Capture the issue URL/number from `gh issue create` output; `$PROJECT_NUMBER` and `$BOARD_OWNER` come from
+`.claude/forge/config`.)
 
 ## 3. Report back
 

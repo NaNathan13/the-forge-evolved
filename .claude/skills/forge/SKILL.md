@@ -13,6 +13,25 @@ that the loop runs hands-off until the batch is drained, then stops and reports.
 ponder → inscribe → forge      (forge drains the ready queue)
 ```
 
+## Where the code and board live (read this FIRST, every invocation)
+
+This is the **split layout**: Claude runs from the **outer project folder**; the app code is a **subfolder**,
+and that subfolder is the only thing on GitHub. The installer wrote the coordinates to `.claude/forge/config`:
+
+```bash
+cat .claude/forge/config    # defines APP_DIR (app subfolder) + REPO_SLUG (owner/name) + BOARD_OWNER, PROJECT_NUMBER
+```
+
+Two unbreakable rules for every command below (the working dir resets between Bash calls, so be explicit):
+
+- **Every `git` command targets the app repo:** `git -C "$APP_DIR" …` — never bare `git`.
+- **Every `gh` command targets the app repo:** add `--repo "$REPO_SLUG"`.
+- **Forge state stays in the OUTER folder:** `.claude/forge/loop-state`, `config`, `seed.md` are read/written
+  with their plain relative paths (no `-C`).
+
+Because env doesn't persist between Bash calls, **`source .claude/forge/config` at the start of each Bash
+block** that uses `$APP_DIR`/`$REPO_SLUG`. The command blocks below assume you've sourced it.
+
 ## You are a THIN orchestrator (D6)
 
 You hold ONLY three things, all distilled:
@@ -30,7 +49,7 @@ State of record lives outside your head: **GitHub issues/labels + git + `.claude
 
 ## 0. Resume-awareness (first thing, every invocation)
 
-Read `.claude/forge/loop-state` if present:
+After reading `.claude/forge/config`, read `.claude/forge/loop-state` if present:
 
 ```bash
 cat .claude/forge/loop-state 2>/dev/null
@@ -43,7 +62,8 @@ fresh at step 1.
 ## 1. Propose the batch & gate (D5)
 
 ```bash
-gh issue list --label status:ready --state open
+source .claude/forge/config
+gh issue list --repo "$REPO_SLUG" --label status:ready --state open
 ```
 
 List each issue — **number, title, and its `verify:*` tag** — and **propose them as the batch**, in
@@ -59,19 +79,20 @@ resumes cleanly. Then, for **each issue in the approved order**, do the followin
 
 ### a. Branch (D5)
 
-Ensure a clean working tree and an up-to-date `main`, then cut the branch:
+Ensure a clean working tree and an up-to-date `main` **in the app repo**, then cut the branch:
 
 ```bash
-git switch main && git pull --ff-only
-git status --porcelain   # must be empty; if not, stop and report — do not build on a dirty tree
-git switch -c forge/issue-<id>
+source .claude/forge/config
+git -C "$APP_DIR" switch main && git -C "$APP_DIR" pull --ff-only
+git -C "$APP_DIR" status --porcelain   # must be empty; if not, stop and report — do not build on a dirty tree
+git -C "$APP_DIR" switch -c forge/issue-<id>
 ```
 
 If `forge/issue-<id>` already exists from a prior failed attempt, use the next suffix:
 `forge/issue-<id>-r2`, then `-r3`, etc.
 
 ```bash
-git switch -c forge/issue-<id>-r2   # only if the base name (or -r2…) is taken
+git -C "$APP_DIR" switch -c forge/issue-<id>-r2   # only if the base name (or -r2…) is taken
 ```
 
 **Record the actual resolved branch name as the issue's `work-branch` in `.claude/forge/loop-state`** and use
@@ -84,15 +105,16 @@ Status labels are **mutually exclusive** — always remove the old when adding t
 moves the board card on the add):
 
 ```bash
-gh issue edit <id> --add-label status:forging --remove-label status:ready
+gh issue edit <id> --repo "$REPO_SLUG" --add-label status:forging --remove-label status:ready
 ```
 
 ### c. Dispatch a fresh forge-builder
 
 Dispatch a **fresh `forge-builder`** subagent. Give it ONLY:
 
-- the issue's **acceptance criteria** (from the issue body — read it with `gh issue view <id>`),
+- the issue's **acceptance criteria** (from the issue body — read it with `gh issue view <id> --repo "$REPO_SLUG"`),
 - its **`verify:*` method**,
+- the **app folder it works in** (`$APP_DIR` — its edits land there, on the current branch),
 - the **relevant lines of `.knowledge/lessons.md`** (the facts that bear on this issue, not the whole file).
 
 It implements on the current branch and returns a distilled `STATUS: DONE | TOO_LARGE | BLOCKED` summary.
@@ -100,7 +122,7 @@ It implements on the current branch and returns a distilled `STATUS: DONE | TOO_
 - **`TOO_LARGE`** (slice outgrew one context — D12) → escalate and move on. **Never chain a second builder
   on the same issue.**
   ```bash
-  gh issue edit <id> --add-label status:needs-human --add-label needs-reslice --remove-label status:forging
+  gh issue edit <id> --repo "$REPO_SLUG" --add-label status:needs-human --add-label needs-reslice --remove-label status:forging
   ```
   Record it (`#<id> RESLICE`) and **skip to the next issue.**
 - **`BLOCKED`** → treat as an escalation: same `status:needs-human` move (reason: the builder's stated
@@ -109,10 +131,10 @@ It implements on the current branch and returns a distilled `STATUS: DONE | TOO_
 
 ### d. Hard gates — BEFORE any review opinion (D8)
 
-Run the **objective** checks yourself. These count before any AI verdict does:
+Run the **objective** checks yourself, **inside the app repo**. These count before any AI verdict does:
 
-- **`verify:test`** → run the target project's **test + type-check + lint** commands (read them from the
-  *target project's* CLAUDE.md).
+- **`verify:test`** → run the project's **test + type-check + lint** commands (read them from the OUTER
+  `CLAUDE.md`'s *Verification commands* section). Run them in `$APP_DIR` (e.g. `cd "$APP_DIR" && <test cmd>`).
 - **`verify:visual`** → capture the **render/screenshot evidence** (note its path; you'll hand it to the
   reviewer).
 
@@ -127,8 +149,9 @@ A non-tampering hard-gate failure with attempts remaining is a normal FAIL → r
 ### e. Move to in-review & dispatch a fresh forge-reviewer
 
 ```bash
-gh issue edit <id> --add-label status:in-review --remove-label status:forging
-git diff main...<work-branch>   # the recorded work-branch; compute the diff yourself — the reviewer has no git/bash
+source .claude/forge/config
+gh issue edit <id> --repo "$REPO_SLUG" --add-label status:in-review --remove-label status:forging
+git -C "$APP_DIR" diff main...<work-branch>   # the recorded work-branch; compute the diff yourself — the reviewer has no git/bash
 ```
 
 Dispatch a **fresh `forge-reviewer`** and give it ONLY:
@@ -157,8 +180,8 @@ Escalate — no partial merge, ever — if **any** of:
 - the builder **touched test/CI config** (from step d).
 
 ```bash
-gh issue edit <id> --add-label status:needs-human --add-label review-failed --remove-label status:in-review
-gh issue comment <id> --body "Escalated: <diff summary> — failing criterion: <cited failure>"
+gh issue edit <id> --repo "$REPO_SLUG" --add-label status:needs-human --add-label review-failed --remove-label status:in-review
+gh issue comment <id> --repo "$REPO_SLUG" --body "Escalated: <diff summary> — failing criterion: <cited failure>"
 ```
 
 Record it (`#<id> ESCALATED: <reason>`) and **skip to the next issue.**
@@ -168,17 +191,18 @@ Record it (`#<id> ESCALATED: <reason>`) and **skip to the next issue.**
 Pin the PR to the recorded **work-branch** explicitly so it doesn't depend on which branch is checked out:
 
 ```bash
-gh pr create --base main --head <work-branch> --title "<issue title>" --body "Closes #<id>"
-gh pr merge <work-branch> --squash --delete-branch
+source .claude/forge/config
+gh pr create --repo "$REPO_SLUG" --base main --head <work-branch> --title "<issue title>" --body "Closes #<id>"
+gh pr merge <work-branch> --repo "$REPO_SLUG" --squash --delete-branch
 ```
 
 `Closes #<id>` in the body auto-links and closes the issue when the PR merges. Then sync `main`, **capture the
-squash SHA**, and **run the test suite** on `main`:
+squash SHA**, and **run the test suite** on `main` (in the app repo):
 
 ```bash
-git switch main && git pull --ff-only
-SQUASH_SHA=$(git rev-parse HEAD)
-# run the target project's test command
+git -C "$APP_DIR" switch main && git -C "$APP_DIR" pull --ff-only
+SQUASH_SHA=$(git -C "$APP_DIR" rev-parse HEAD)
+# run the project's test command in $APP_DIR
 ```
 
 Now branch on the result — these two paths are mutually exclusive:
@@ -186,18 +210,18 @@ Now branch on the result — these two paths are mutually exclusive:
 - **Post-merge tests PASS** → the change is done. Reconcile the label so the card lands in **Done** (the PR
   merge may already have closed the issue):
   ```bash
-  gh issue edit <id> --add-label status:done --remove-label status:in-review
+  gh issue edit <id> --repo "$REPO_SLUG" --add-label status:done --remove-label status:in-review
   ```
   Record `#<id> merged`.
 
 - **Post-merge tests FAIL** → a reverted change is **not** done. Revert, then reopen and escalate (the PR's
   `Closes #<id>` already auto-closed the issue):
   ```bash
-  git revert $SQUASH_SHA --no-edit && git push
-  gh issue reopen <id>
-  gh issue edit <id> --add-label status:needs-human --add-label review-failed \
+  git -C "$APP_DIR" revert $SQUASH_SHA --no-edit && git -C "$APP_DIR" push
+  gh issue reopen <id> --repo "$REPO_SLUG"
+  gh issue edit <id> --repo "$REPO_SLUG" --add-label status:needs-human --add-label review-failed \
     --remove-label status:done --remove-label status:in-review
-  gh issue comment <id> --body "Post-merge tests failed on main; squash $SQUASH_SHA reverted. Needs human."
+  gh issue comment <id> --repo "$REPO_SLUG" --body "Post-merge tests failed on main; squash $SQUASH_SHA reverted. Needs human."
   ```
   Record `#<id> REVERTED (post-merge tests failed)`. Do **not** mark it done/merged.
 
@@ -223,6 +247,8 @@ the board.
 
 ## Rules
 
+- **Read `.claude/forge/config` first.** `git` → `git -C "$APP_DIR"`; `gh` → `gh … --repo "$REPO_SLUG"`.
+  Forge state (loop-state) stays in the outer folder.
 - **Issues + labels + git + loop-state are the truth.** You hold only distilled state — never a transcript.
 - **One human gate: batch approval.** After "go", the loop is hands-off until it stops and reports.
 - **Label transitions always pair add + remove** (`status:*` is mutually exclusive).
@@ -235,5 +261,5 @@ the board.
 You (the orchestrator) rarely hit the context gate because you stay thin. The in-loop pressure valve is the
 **builder's `TOO_LARGE`** — when a slice is too big for one fresh context, the builder signals it and you
 reslice-escalate rather than push into the dumb zone. If *you* approach the hard stop, the resume mechanism
-is simply **`/clear` then re-run `/forge`**: it reads `.claude/forge/loop-state` + the board and picks up at
-the cursor. No handoff doc needed — the state is already external.
+is simply **`/clear` then re-run `/forge`**: it reads `.claude/forge/config` + `.claude/forge/loop-state` +
+the board and picks up at the cursor. No handoff doc needed — the state is already external.
