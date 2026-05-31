@@ -14,7 +14,7 @@
 #   (Backlog column has NO status label — it is the pre-ready default; unmapped.)
 #
 # Required repo/org Variables (gh variable set ... / Settings > Secrets and
-# variables > Actions > Variables) — populated by the Phase 7 installer:
+# variables > Actions > Variables) — you set these (see docs/github-setup.md):
 #   FORGE_PROJECT_ID        Project v2 node id   (gh project view <n> --owner <o> --format json -> .id)
 #   FORGE_STATUS_FIELD_ID   `Forge Status` field id  (ProjectV2SingleSelectField.id; custom field, not built-in "Status")
 #   FORGE_OPT_READY         option id for "Ready"

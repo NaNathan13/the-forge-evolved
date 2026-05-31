@@ -1,20 +1,18 @@
 # ============================================================================
 # The Forge Evolved — labels -> board sync   (INSTALLABLE TEMPLATE)
 # ----------------------------------------------------------------------------
-# Copy this file to .github/workflows/sync-board.yml in the target repo. The
-# logic is repo-agnostic: every repo-specific id is read from a repository
-# (or org) Variable, and the Projects PAT from a Secret. The Phase 7 installer
-# (light-the-forge) creates the board and POPULATES THESE VALUES — it does not
-# edit this file. The file itself is identical to the live workflow except for
-# this expanded installer-facing header.
+# light-the-forge ships this file into <name>-app/.github/workflows/. The logic
+# is repo-agnostic: every repo-specific id is read from a repository (or org)
+# Variable, and the Projects PAT from a Secret. You create the board and set
+# these values yourself (see docs/github-setup.md) — nothing edits this file.
+# It is identical to the live workflow except for this expanded setup header.
 #
 # WHAT THIS DOES
 #   The Forge drives issue state via `status:*` labels. When a status label is
 #   added to an issue, this workflow sets the matching option on the Projects
 #   v2 board's custom single-select `Forge Status` field, so the board is a
-#   synchronized *view* of the labels. (Card moves are not verified at install
-#   time — they
-#   only become observable once a status label is applied to a board issue.)
+#   synchronized *view* of the labels. (Card moves only become observable once a
+#   status label is applied to a board issue.)
 #
 # LABEL -> BOARD STATUS OPTION MAP
 #   status:ready       -> Ready
@@ -26,7 +24,7 @@
 #    is intentionally NOT mapped here.)
 #
 # ----------------------------------------------------------------------------
-# INSTALLER: VARIABLES TO SET  (gh variable set NAME --body "VALUE" [--repo R])
+# SETUP: VARIABLES TO SET  (gh variable set NAME --body "VALUE" [--repo R])
 # ----------------------------------------------------------------------------
 #   FORGE_PROJECT_ID
 #       The Projects v2 NODE id (starts with "PVT_..."), NOT the project number.
@@ -38,9 +36,9 @@
 #       (use organization(login:$o) for org-owned projects)
 #
 #   FORGE_STATUS_FIELD_ID  + the five FORGE_OPT_* option ids
-#       The `Forge Status` single-select field id AND each option's id. (The
-#       installer creates a custom field named "Forge Status" — NOT the board's
-#       built-in "Status" field — and this workflow targets that one.) One query
+#       The `Forge Status` single-select field id AND each option's id. (Setup
+#       creates a custom field named "Forge Status" — NOT the board's built-in
+#       "Status" field — and this workflow targets that one.) One query
 #       returns all of them — match option ids by name:
 #         gh api graphql -f query='query($p:ID!){
 #           node(id:$p){ ... on ProjectV2 {
@@ -56,7 +54,7 @@
 #         options[] where name == "Needs Human"  -> .id         -> FORGE_OPT_NEEDS_HUMAN
 #
 # ----------------------------------------------------------------------------
-# INSTALLER: SECRET TO SET  (gh secret set NAME [--repo R])
+# SETUP: SECRET TO SET  (gh secret set NAME [--repo R])
 # ----------------------------------------------------------------------------
 #   FORGE_PROJECT_PAT
 #       A CLASSIC Personal Access Token authorized for Projects v2 — the

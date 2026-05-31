@@ -234,10 +234,11 @@ These are settled. Details/rationale captured here; mechanics to be turned into 
       the board is a **synchronized view**.
     - Attribute labels: `verify:test` / `verify:visual`; escalation *reason* on Needs-Human (`needs-reslice`,
       `review-failed`, …). fix↔review iteration stays internal.
-    - **Installer requirements (`light-the-forge`):** a **classic PAT with `project` scope** (fine-grained PATs
-      do NOT support Projects v2; Actions `GITHUB_TOKEN` can't touch Projects) — installer checks + guides
-      `gh auth refresh -s project`; **one Project per repo**, `gh project link`'d; board + Status field + column
-      options are created via `gh project create` / `field-create` (scriptable).
+    - **GitHub setup (yours, not the installer's — see `docs/github-setup.md`):** the sync workflow runs on a
+      **classic PAT with `project` scope** (fine-grained PATs do NOT support Projects v2; Actions `GITHUB_TOKEN`
+      can't touch Projects) — `gh auth refresh -s project`; **one Project per repo**, `gh project link`'d; board
+      + Status field + column options are created via `gh project create` / `field-create`. `light-the-forge`
+      scaffolds code only and never touches GitHub.
 
 16. **Command surface — three user commands.** `ponder / inscribe / forge`. `temper` (review) and `seal`
     (merge + end-of-batch report) are **named internal stages of the forge loop**, not user commands — so
