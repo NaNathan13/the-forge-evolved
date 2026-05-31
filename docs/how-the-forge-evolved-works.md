@@ -81,7 +81,7 @@ Labels are the state machine; the board is a synchronized view of them.
 A GitHub Actions workflow (`.github/workflows/sync-board.yml`) watches label changes and mirrors them
 onto a **Projects v2** board, moving each issue's card into the matching column. The board never drives
 state — it reflects the labels. (Because Projects v2 is out of reach for the Actions `GITHUB_TOKEN` and
-for fine-grained PATs, the sync runs on a stored **classic PAT** with the `project` scope; see Install.)
+for fine-grained PATs, the sync runs on a stored **classic PAT** with the `project` scope; see GitHub setup.)
 
 ## Context discipline
 
@@ -137,24 +137,27 @@ own. See `.claude/skills/scrub/SKILL.md`.
 
 The workflow uses a **split layout**: you run `light-the-forge.sh` from a new, empty **project folder**;
 it installs the forge kit *there* (skills, agents, hooks, statusline, `.knowledge/`, CLAUDE.md / CONTEXT.md
-starters) and **creates the app code as a `<name>-app/` subfolder** that is a fresh git repo pushed to
-GitHub — the only thing on GitHub. Claude Code opens the outer folder; the skills find the app repo via
+starters, and `docs/github-setup.md`) and **creates the app code as a `<name>-app/` subfolder** — a fresh
+local git repo with an initial commit. Claude Code opens the outer folder; the skills find the app repo via
 `.claude/forge/config` (`APP_DIR`, `REPO_SLUG`, `BOARD_OWNER`, `PROJECT_NUMBER`).
 
 Run **`/light-the-forge`** (a thin wrapper around `light-the-forge.sh`, also runnable directly, or via the
-`curl … | bash` one-liner in the README). It asks for the project name, owner, visibility, description, and
-an optional initial-research note, shows a confirm step, then provisions the GitHub side for the new app
-repo: the Projects v2 board, the `status:*` / `verify:*` labels, the `sync-board.yml` workflow (inside the
-app repo), the repo variables the workflow reads (`FORGE_PROJECT_ID`, `FORGE_STATUS_FIELD_ID`, the
-`FORGE_OPT_*` option IDs), and the `FORGE_PROJECT_PAT` secret. It aborts rather than clobber if the app
-folder or the target repo already exists.
+`curl … | bash` one-liner in the README). It asks for the project name, owner, description, and an optional
+initial-research note, shows a confirm step, then writes the local kit + app folder. It aborts rather than
+clobber if the app folder already exists.
 
-Two steps genuinely need a human:
+The installer scaffolds code only. **GitHub is yours to set up** — the repo, the Projects v2 board, the
+`status:*` / `verify:*` labels, the repo variables the sync workflow reads (`FORGE_PROJECT_ID`,
+`FORGE_STATUS_FIELD_ID`, the `FORGE_OPT_*` option IDs), and the `FORGE_PROJECT_PAT` secret. The
+`sync-board.yml` workflow ships inside the app folder, ready for when you push. Follow
+**`docs/github-setup.md`** for the exact `gh` commands; run them yourself, or hand them to Claude when you
+want it to. Two pieces are worth calling out:
 
-- The `gh` CLI must have the **`project`** auth scope (`gh auth refresh -s project`) for the install.
-- The sync workflow needs a **classic** PAT with the `project` scope stored as `FORGE_PROJECT_PAT`
-  (add `repo` for a private app repo). Fine-grained PATs cannot drive Projects v2; until the secret
-  exists, the labels→board sync won't run, though the rest of the install is already in place.
+- Provisioning the board needs the `gh` **`project`** auth scope (`gh auth refresh -s project`).
+- The sync workflow runs on a **classic** PAT with the `project` scope stored as `FORGE_PROJECT_PAT`
+  (add `repo` for a private app repo). Fine-grained PATs cannot drive Projects v2; the labels→board sync
+  runs once that secret exists.
 
-After a clean install, open the project folder in Claude Code and run `/ponder` (it reads the seed the
-installer left). See `.claude/skills/light-the-forge/SKILL.md`.
+Set up GitHub, fill `PROJECT_NUMBER` in `.claude/forge/config`, then open the project folder in Claude Code
+and run `/ponder` (it reads the seed the installer left). See `.claude/skills/light-the-forge/SKILL.md` and
+`docs/github-setup.md`.

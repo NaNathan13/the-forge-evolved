@@ -27,7 +27,8 @@ per issue), bash, jq, markdown.
 **Build order (dependency-sound, progressively dogfoodable):**
 `Phase 0 scaffold → 1 CLAUDE.md → 2 context substrate → 3 planning front-end → 4 board/labels/sync →
 5 the forge loop → 6 knowledge + scrub → 7 installer → 8 dogfood + doc`.
-Full autonomous value lands at Phase 5; the installer (7) automates what phases 4–5 set up by hand for testing.
+Full autonomous value lands at Phase 5; the installer (7) scaffolds the kit locally, while the GitHub side
+(board/labels/vars/PAT) that phases 4–5 set up by hand stays a manual checklist (docs/github-setup.md).
 
 ---
 
@@ -41,7 +42,7 @@ the-forge-evolved/
   templates/
     CLAUDE.md                    # template installed into target projects — D23
     CONTEXT.md                   # template glossary
-    sync-board.yml               # template Actions workflow (IDs filled by installer) — D15
+    sync-board.yml               # template Actions workflow (IDs set during GitHub setup) — D15
   .claude/
     settings.json                # registers statusline + the one hook
     statusline.sh                # renders ctx gauge + writes % to run-state — D10
@@ -211,7 +212,7 @@ glossary lazy, not inlined.
   bodies contain acceptance criteria and that carry `status:ready` + a `verify:*` label. Check:
   `gh issue list --label status:ready` shows them.
   *(Done as per-criterion read-only review of both skills against the spec — all 11 PASS. Live ponder→inscribe
-  run on a real board is folded into the Phase 8 dogfood, since the board is stood up by the Phase 7 installer.)*
+  run on a real board is folded into the Phase 8 dogfood, once the board is set up per docs/github-setup.md.)*
 - [x] **Step 5: Commit.** `git commit -am "feat: ponder (grill+research) and inscribe (docs+issues)"`.
 
 **Delivers:** idea → confirmed → GitHub issues with criteria + labels. **Verify:** breakdown gate fires; issues
@@ -223,25 +224,25 @@ created with correct labels/criteria.
 
 **Files:** Create `.github/workflows/sync-board.yml` and `templates/sync-board.yml`. Define the label set. D15.
 
-- [x] **Step 1: Define the label set** (created by the installer in Phase 7; documented here):
+- [x] **Step 1: Define the label set** (created during GitHub setup — docs/github-setup.md; documented here):
   `status:ready`, `status:forging`, `status:in-review`, `status:done`, `status:needs-human`;
   `verify:test`, `verify:visual`; `needs-reslice`, `review-failed`. Status labels are mutually exclusive
   (the agent removes the old status label when adding the new one).
 - [x] **Step 2: Write `.github/workflows/sync-board.yml`.** Trigger: `issues: [labeled, unlabeled]`. On a
   `status:*` label change, call `updateProjectV2ItemFieldValue` to set the board's `Status` field to the matching
-  option. Uses repo/org **variables** for `PROJECT_ID`, `STATUS_FIELD_ID`, and the option IDs (written by the
-  installer — D15), and a **PAT secret** with `project` scope (the Actions `GITHUB_TOKEN` cannot touch Projects).
+  option. Uses repo/org **variables** for `PROJECT_ID`, `STATUS_FIELD_ID`, and the option IDs (set during
+  GitHub setup — D15), and a **PAT secret** with `project` scope (the Actions `GITHUB_TOKEN` cannot touch Projects).
   Map: `status:ready→Ready`, `forging→Forging`, `in-review→In Review`, `done→Done`, `needs-human→Needs Human`.
   Pause/handle GraphQL `errors` in the response (rate-limit returns 200+errors).
 - [x] **Step 3: Write `templates/sync-board.yml`** — identical but with `${{ vars.* }}` placeholders documented
-  so the installer can populate them per repo.
+  so they can be set per repo during GitHub setup.
 - [x] **Step 4: Verify** on the test repo: `gh issue edit <n> --add-label status:forging --remove-label status:ready`
   → within a few seconds the board card moves to **Forging**. Confirm the Action run succeeded
   (`gh run list --workflow sync-board.yml`).
   *(Structural verification done now: both YAML parse; GraphQL `updateProjectV2ItemFieldValue` + `projectItems`
   filter confirmed against current GitHub docs; per-criterion read-only review APPROVED after a D15 fix
-  (fine-grained PAT removed). Live "label moves card" run is folded into Phase 7/8 once the installer stands up
-  the board + populates the `vars`/PAT secret.)*
+  (fine-grained PAT removed). Live "label moves card" run is folded into the Phase 8 dogfood once the board +
+  `vars`/PAT secret are set up per docs/github-setup.md.)*
 - [x] **Step 5: Commit.** `git commit -am "feat: labels->Projects v2 board sync workflow"`.
 
 **Delivers:** agent-simple label state renders as a live Kanban. **Verify:** a label change moves the card.
@@ -287,7 +288,7 @@ created with correct labels/criteria.
   and the end report lists context%/rounds.
   *(Logic verified now via independent per-criterion read-only review — 13 criteria, REJECT→fix→all PASS. The
   review caught two real bugs (retry-branch ref + broken revert/relabel path), both fixed. Live end-to-end run
-  is the Phase 8 dogfood, once the Phase 7 installer stands up a real board + PAT.)*
+  is the Phase 8 dogfood, once a real board + PAT are set up per docs/github-setup.md.)*
 - [x] **Step 5: Commit.** `git commit -am "feat: forge orchestrator loop + builder/reviewer agents"`.
 
 **Delivers:** the autonomous, hands-off, escalating batch loop (D7). **Verify:** full happy-path + an escalation
@@ -321,29 +322,26 @@ path both observed end-to-end.
 
 **Files:** Rewrite `light-the-forge.sh` + `.claude/skills/light-the-forge/SKILL.md`. D17, D22, D15.
 
-- [x] **Step 1: Write `light-the-forge.sh`** to bootstrap a *target* project. Steps it performs:
-  - Ask setup questions (project name; `{{TEST_CMD}}`, `{{TYPECHECK_CMD}}`, `{{LINT_CMD}}`; board owner).
-  - **Auth check:** `gh auth status`; verify `project` scope present; if not, instruct `gh auth refresh -s project`
-    and that a **classic** PAT is required (fine-grained PATs don't support Projects v2 — D15). Halt until satisfied.
-  - Copy skills/agents/hooks/statusline/`.knowledge`/templates into the target's `.claude/` etc.; fill template
-    placeholders in `CLAUDE.md`/`CONTEXT.md`.
-  - **Create the board:** `gh project create`; `gh project field-create … --data-type SINGLE_SELECT
-    --single-select-options "Backlog,Ready,Forging,In Review,Done,Needs Human"`; `gh project link` to the repo.
-  - **Create labels** (the Phase-4 set) via `gh label create`.
-  - **Fetch the IDs** (project node id, Status field id, option ids) and write them into the repo's
-    `.github/workflows/sync-board.yml` + repo variables/secrets; install the PAT secret for the workflow.
-  - Register statusline + `ctx-gate` hook in the target `.claude/settings.json`.
+- [x] **Step 1: Write `light-the-forge.sh`** to scaffold a *target* project — **code only; it never touches
+  GitHub.** Steps it performs:
+  - Ask setup questions (project name; GitHub owner for the config coordinates; description; optional research).
+  - Copy skills/agents/hooks/statusline/`.knowledge`/`docs/github-setup.md`/templates into the target's
+    `.claude/` etc.; fill template placeholders in `CLAUDE.md`/`CONTEXT.md`.
+  - Scaffold `<name>-app/` (README, `.gitignore`, `sync-board.yml`) and `git init` + initial commit, **locally**.
+  - Write `.claude/forge/config` (`APP_DIR`, `REPO_SLUG`, `BOARD_OWNER`, `PROJECT_NUMBER` placeholder) and
+    `seed.md`; register statusline + `ctx-gate` hook in the target `.claude/settings.json`.
+  - **GitHub is the user's** — repo, Projects v2 board, labels, repo variables, and the `FORGE_PROJECT_PAT`
+    secret are a manual checklist in `docs/github-setup.md` (classic PAT, `project` scope — D15).
 - [x] **Step 2: Write `.claude/skills/light-the-forge/SKILL.md`** — the in-Claude-Code entry that runs the script
-  and walks the user through the auth/board steps conversationally.
-- [~] **Step 3: Verify** on a fresh empty test repo: run the installer → board with the 6 columns exists, labels
-  exist, `sync-board.yml` present with IDs filled, skills/agents/hooks installed, a label change moves a card.
-  *(Static verification done: `bash -n` + `shellcheck` clean; `gh` subcommands/flags audited against gh 2.89.0;
-  settings.json merge empirically tested in /tmp (preserves an existing PreToolUse hook + statusLine + permissions,
-  dedups on re-run). LIVE run creates outward-facing GitHub resources + needs a classic PAT → it IS the Phase 8
-  dogfood, pending user authorization.)*
+  and then hands the user `docs/github-setup.md` for the GitHub side.
+- [x] **Step 3: Verify** on a fresh empty folder: run the installer → kit + `<name>-app/` (local git repo,
+  initial commit) installed, `config`/`seed.md`/`settings.json` written, **zero GitHub calls**.
+  *(Static verification: `bash -n` clean; `grep` confirms no `gh` calls in the installer; settings.json merge
+  tested in /tmp — preserves an existing PreToolUse hook + statusLine + permissions, dedups on re-run.)*
 - [x] **Step 4: Commit.** `git commit -am "feat: light-the-forge installer (board+labels+sync+skills)"`.
 
-**Delivers:** one command stands up the whole workflow on a new repo. **Verify:** end-to-end install on a clean repo.
+**Delivers:** one command scaffolds the local workflow; GitHub setup is the user's (docs/github-setup.md).
+**Verify:** end-to-end local install with no GitHub calls.
 
 ---
 
@@ -365,16 +363,17 @@ path both observed end-to-end.
 ## Self-review (against vision.md)
 
 **Spec coverage — every locked decision maps to a phase:**
-D1 per-project install → P7 installer · D2 ponder→confirm→inscribe → P3 · D3 board → P4/P7 · D4 batch=ready issues
+D1 per-project install → P7 installer · D2 ponder→confirm→inscribe → P3 · D3 board → P4 + docs/github-setup.md · D4 batch=ready issues
 → P5.1 · D5 branch+squash-PR+test-gate → P5.3 · D6 thin orchestrator+subagents → P5 · D7 hands-off+escalation →
 P5.3 · D8 review gate → P5.2/P5.3 · D9 verification posture → P3/P5 · D10 context hook → P2 · D11 continuation →
 P2/P3/P5 · D12 overflow→reslice → P5.3 · D13 knowledge → P3/P6 · D14 folders (.knowledge vs .claude/forge) → P0/P2/P6
-· D15 labels+Actions sync + auth → P4/P7 · D16 three commands → P0 · D17 skill inventory → P0 · D18 stop+report →
+· D15 labels+Actions sync + auth → P4 + docs/github-setup.md · D16 three commands → P0 · D17 skill inventory → P0 · D18 stop+report →
 P5.3 · D19 token report → P5.3 · D20 one hook → P2 · D21 CONTEXT.md → P1 · D22 copy Core → P0 · D23 CLAUDE.md → P1 ·
 D24 three agents → P3/P5. **No gaps.**
 
-**Placeholder scan:** template files intentionally carry `{{...}}`/`${{ vars.* }}` (installer fills them) — these
-are the *only* placeholders and are real install-time variables, not plan gaps.
+**Placeholder scan:** template files intentionally carry `{{...}}` (the installer fills these in
+CLAUDE.md/CONTEXT.md) and `${{ vars.* }}` (resolved at Actions runtime from the repo variables set during
+GitHub setup) — these are the *only* placeholders and are real variables, not plan gaps.
 
 **Naming consistency:** labels `status:ready|forging|in-review|done|needs-human` + `verify:test|visual` +
 `needs-reslice|review-failed`; branches `forge/issue-<id>`; run-state `.claude/forge/{.ctx,loop-state,handoff.md}`;
