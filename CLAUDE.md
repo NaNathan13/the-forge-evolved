@@ -22,7 +22,7 @@ Use them sequentially. Don't `/forge` without ready issues — `/ponder` then `/
 - At the hard stop: **write/refresh the handoff, then `/clear` and re-run the command.** Don't push past it.
 - State lives in **GitHub issues/labels + git + `.claude/forge/loop-state`** — so resume is just `/clear`
   then re-run the command; it reads the board and picks up the next issue.
-- Skills self-check at safe points and hand off proactively (~35%) to avoid being blocked mid-action.
+- <important if="context approaching 35%">Skills self-check at safe points and hand off proactively (~35%) to avoid being blocked mid-action. The ctx-gate hook is a backstop, not the plan — being denied a tool call at 40% means you handed off too late.</important>
 
 ## Architecture quirks
 
