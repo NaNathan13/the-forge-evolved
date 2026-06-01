@@ -71,6 +71,9 @@ dependency order (the order they appear / were filed). Then **stop and wait for 
 user may trim the list. **Nothing runs before approval — approval is the moment autonomy begins.** Do not cut
 a branch, move a label, or dispatch anything until the user says go.
 
+If the batch contains **`verify:visual`** (UI) issues, add a one-line note that they build best from a design:
+*"#N is UI — if it hasn't been designed yet, `/envision` first will give the builder a screenshot + token spec to match."* A nudge, not a gate; `/forge` doesn't depend on `/envision`.
+
 ## 2. Init/refresh loop-state, then loop per issue
 
 Write the approved batch to `.claude/forge/loop-state` (batch list + a `cursor` pointing at the current

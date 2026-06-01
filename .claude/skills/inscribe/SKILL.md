@@ -63,6 +63,10 @@ Report the created issue numbers in dependency order, with their verify labels. 
 
 > Created #12 (verify:test), #13 (verify:test), #14 (verify:visual). All `status:ready` and on the board. Run `/forge` to build them.
 
+If any **`verify:visual`** (UI) issues were created, add a one-line signpost — those screens want designs first:
+
+> #14 is UI — consider `/envision` to design the screens before `/forge` builds them.
+
 ## Label taxonomy (be aware; inscribe only sets the creation subset)
 
 - **`status:*`** (mutually exclusive — one at a time): `status:ready` | `status:forging` | `status:in-review` | `status:done` | `status:needs-human`. The `/forge` loop manages transitions later.
