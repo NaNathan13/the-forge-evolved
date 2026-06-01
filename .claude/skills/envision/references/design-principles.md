@@ -96,3 +96,15 @@ Any miss → emit a revision prompt for the same checkpoint; do not advance.
 - **Org design system** (admin, qualifying plan): publish once → auto-applies to new projects. Best anti-drift.
 - **Solo / no org:** keep building in **one project** so the system stays in context; on a fresh session, re-paste the system (`system.css`) to re-anchor. Watch for drift after many screens (context rot) → reset session + re-anchor.
 - **Export:** "Handoff to Claude Code", standalone HTML, or .zip — operator-driven; the skill can't fetch the canvas.
+
+---
+
+## Integration & handoff gotchas (learned the hard way)
+
+When the exported bundle lands in the repo:
+
+- **Issue numbers are guessed — always wrong.** Claude Design invents the issue tags in `screens/*.md`, README, and HANDOFF tables (in one real run, 9 of 10 were scrambled). **Reconcile every tag against the real GitHub issues** and correct them before wiring references. Never trust the export's numbers.
+- **Screenshots get gitignored.** A repo-wide `screenshots/` ignore rule silently drops the reference shots, so the committed bundle lands incomplete. After placing the bundle, confirm the screenshots are actually tracked; add a scoped exception (`!docs/design/screenshots/`, `!docs/design/screenshots/**`) if not.
+- **Let Claude Design write the bundle, not you.** It carries the RN-translation context it accrued building every screen (conic-ring→SVG, dashed/dotted borders, swipe, safe areas, skeleton shimmer). Authoring the handoff Markdown there is richer than reconstructing it cold; the operator's job is to *integrate and reconcile*, not re-derive.
+- **The clickable prototype earns its keep.** Wiring the happy path surfaces nav/transition gaps statics can't show — e.g. a header with no exit affordance, leaving a screen unreachable. Fold every such fix back into the static screen + spec so all three (prototype, statics, nav backbone) agree.
+- **Preview can go down.** Claude Design's screenshot preview is intermittent; it can fork a verifier agent to do the visual sweep. Accept that as interim, but capture a real screenshot before signing off the surface — the visual gate is the whole point.

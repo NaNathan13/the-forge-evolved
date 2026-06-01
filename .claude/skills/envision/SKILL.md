@@ -49,6 +49,7 @@ Claude Design has no API/MCP (verified — research-preview, UI-only). `/envisio
 1. **Emit one copy-paste prompt** for the operator to paste into Claude Design (templates in the reference).
 2. **Operator runs it** and pastes back Claude Design's response **+ a screenshot**.
 3. **Verify against the brief — BLOCKING.** Do not advance without a screenshot. Check: both light + dark present? every promised state/element there? shared components reused (no drift / re-invented badges or colors)? stack-correct token shape?
+   - *Preview-down fallback:* Claude Design's screenshot preview is sometimes unavailable. If so, accept its **forked verifier agent's** visual sweep as interim and keep moving — but still capture a real screenshot of that surface before final sign-off; don't let the gate silently lapse for a whole batch.
 4. **Branch:** clean → approve, update the state file, emit the **next** prompt. Off → emit a **revision** prompt for the *same* checkpoint and stay put.
 
 If an official Claude Design API/MCP ever ships, the relay in this step is the only thing that changes — the sequence and verification stay.
@@ -63,6 +64,10 @@ If an official Claude Design API/MCP ever ships, the relay in this step is the o
 
 **Screens — derived per project:** group the *actual* screen list into **small batches by shared surface**, give the **hero/centerpiece screen its own solo pass**, and **confirm the batch plan with the operator** before starting. One batch at a time; verify each before the next. (Grouping heuristic in the reference.)
 
+## 4b. Optional capstone — clickable prototype
+
+After the screens, offer to have Claude Design wire a **clickable prototype** of the happy path with the 2–3 signature branches (not an exhaustive click-through — that just duplicates the static frames). Its real value is surfacing **navigation/transition gaps static screens hide** — in practice this catches missing back-affordances and dead-end flows. **Fold any fix back into the static screen + its spec** so the prototype, the statics, and the nav backbone agree. Skip it only when the flow is trivial.
+
 ## 5. State & context discipline
 
 - After each approved checkpoint, refresh `.claude/forge/envision.md`: locked brand, design-system reference, batch plan, per-checkpoint status, the next step.
@@ -72,9 +77,11 @@ If an official Claude Design API/MCP ever ships, the relay in this step is the o
 
 When the batches are done:
 
-- **Export from Claude Design** (operator-driven — "Handoff to Claude Code" / HTML / .zip) into `docs/design/`: `system.css`/token spec, per-screen HTML, and `screenshots/` (light + dark per screen).
-- **Write `docs/design/handoff.md`** — the design→code map: which tokens map to the project's token source, which shared components to build **once**, and a per-screen entry (states + which components it reuses). This is what the builder reads.
-- **Optionally close the loop to issues** — if the project gates UI behind a design label, offer to clear it / mark the UI issues ready to build. **Detect the project's label convention; do not assume one.** No code, no token porting, no component scaffolding — those belong to `/forge`.
+- **Have Claude Design author the handoff bundle**, then export it — it carries all the RN-translation context (conic-ring→SVG, dashed borders, swipe, safe areas), so let it write the Markdown: `README.md` / `tokens.md` (token map → the stack's token shape) / `components.md` (shared primitives + props + RN notes) / `screens/*.md` (states + components + a navigation contract). Export the whole project (operator-driven — "Handoff to Claude Code" / .zip) into `docs/design/`, alongside the raw HTML/CSS and screenshots.
+- **Integrate + reconcile (operator side — you can't fetch the canvas).** When the bundle lands in the repo:
+  - **Reconcile the issue tags — Claude Design GUESSES issue numbers and gets them wrong.** Verify every `screens/*.md` / README / HANDOFF tag against the *real* GitHub issues and correct them; never trust the export's numbers.
+  - **Watch for gitignored screenshots.** A global `screenshots/` ignore rule will silently drop the reference shots — confirm they actually get tracked (add a scoped exception if needed), or the bundle lands incomplete.
+- **Optionally close the loop to issues** — if the project gates UI behind a design label, offer to clear it / mark the UI issues ready to build, and link each issue to its `screens/*.md`. **Detect the project's label convention; do not assume one.** No code, no token porting, no component scaffolding — those belong to `/forge`.
 
 ## Rules
 
@@ -84,4 +91,5 @@ When the batches are done:
 - **One batch at a time.** Verify each before the next; the hero screen gets a solo pass.
 - **No app code.** `/envision` produces designs + a handoff; `/forge` builds them.
 - **Don't invent the product.** A defined concept is the input; this is design, not `/ponder`.
+- **Never trust the export's issue numbers.** Claude Design guesses them — reconcile every tag against real issues on integration.
 - **Read `references/design-principles.md` every run** — don't rely on memory for the craft.
