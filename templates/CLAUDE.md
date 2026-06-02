@@ -79,11 +79,10 @@ framework unless the plan requires one.
 the server to `0.0.0.0` so others reach it at `http://<this-computer>:<port>`; data still lives in one place.
 
 ## Response Style
-- Concise. No preamble, no "I'll now..." narration.
-- No explanations unless asked. Skip recaps of completed work.
-- Code only when showing actual code, not summaries.
-- When a task is done, end. No "let me know if..." closers.
-- If I flag a mistake, fix it without re-asking or apologizing.
+
+- Be concise. No preamble, no filler, no narration of the obvious.
+- In a line or two, say what you're about to do and what you just did.
+- Keep every exact detail that matters (files, names, values, decisions); cut the prose around them.
 
 ---
 See CONTEXT.md for glossary (load on demand). See `.knowledge/lessons.md` (skill-fed).
