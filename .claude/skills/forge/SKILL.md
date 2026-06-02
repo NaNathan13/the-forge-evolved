@@ -67,9 +67,12 @@ gh issue list --repo "$REPO_SLUG" --label status:ready --state open
 ```
 
 List each issue — **number, title, and its `verify:*` tag** — and **propose them as the batch**, in
-dependency order (the order they appear / were filed). Then **stop and wait for the user's approval.** The
-user may trim the list. **Nothing runs before approval — approval is the moment autonomy begins.** Do not cut
-a branch, move a label, or dispatch anything until the user says go.
+dependency order (the order they appear / were filed). Present the list as text, then put the **approval
+gate through the `AskUserQuestion` tool** so it's answerable from the Claude phone app / `/remote-control`
+(a prose question can't be answered there) — one question, header `Batch`, options like **"Run all N"** and
+**"Trim the list"** (the user types which to drop via "Other"). **Stop and wait for that approval.**
+**Nothing runs before approval — approval is the moment autonomy begins.** Do not cut a branch, move a
+label, or dispatch anything until the user says go.
 
 If the batch contains **`verify:visual`** (UI) issues, add a one-line note that they build best from a design:
 *"#N is UI — if it hasn't been designed yet, `/envision` first will give the builder a screenshot + token spec to match."* A nudge, not a gate; `/forge` doesn't depend on `/envision`.

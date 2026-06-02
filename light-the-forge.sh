@@ -82,6 +82,19 @@ OUTER="$(cd -P "$OUTER" && pwd)"
 if [[ "$SRC" == "$OUTER" ]]; then
   die "You're running this from inside the-forge-evolved checkout itself. Run it from a NEW, empty project folder (or pass one as an argument)."
 fi
+# Guard the #1 user mistake: cloning the-forge-evolved and running from inside that clone.
+# The outer project folder must NOT be a git repo (your code becomes a git repo in <name>-app/).
+# If OUTER sits inside a checkout whose origin is the-forge-evolved, abort with a pointer.
+if OUTER_TOP="$(git -C "$OUTER" rev-parse --show-toplevel 2>/dev/null)"; then
+  OUTER_ORIGIN="$(git -C "$OUTER" remote get-url origin 2>/dev/null || true)"
+  if [[ "$OUTER_ORIGIN" == *the-forge-evolved* ]]; then
+    die "You're scaffolding inside a clone of The Forge Evolved ($OUTER_TOP).
+  Don't clone this repo to use it — the one-liner fetches what it needs on its own.
+  Make a NEW, empty folder and run from there:
+      mkdir my-project && cd my-project
+      curl -fsSL ${REPO_URL%.git}/raw/main/light-the-forge.sh | bash"
+  fi
+fi
 
 bold "The Forge Evolved — new project scaffold"
 printf '  Kit source:     %s\n  Project folder: %s\n\n' "$SRC" "$OUTER"
