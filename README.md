@@ -10,15 +10,22 @@ each issue, then stop and report).
 
 ## Quick start
 
-Make a new project folder, `cd` into it, and run the one-liner:
+> **Don't clone this repo to use it.** The one-liner below fetches everything it needs on its own.
+> Cloning the-forge-evolved and running `/ponder` inside it is the #1 way to get a broken setup — you'd
+> be working inside *this* project's git checkout (wrong remote, no config), not your own.
+
+**Step 1 — be in the folder you want as your project's home.** Make an empty one if you don't have it yet
+(`mkdir my-project && cd my-project`). The installer scaffolds into whatever folder you're standing in.
+
+**Step 2 — run the one-liner** (copy-paste, it just runs):
 
 ```bash
-mkdir my-project && cd my-project
 curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/light-the-forge.sh | bash
 ```
 
 It asks a handful of questions — **project name**, GitHub **owner**, a **one-line description**, and
-whether to **kick off initial research** — shows a confirm step, then scaffolds the local layout:
+whether to **kick off initial research** — shows a confirm step, then scaffolds the local layout
+**into the current folder**:
 
 ```
 my-project/                 ← you run the one-liner here; open THIS folder in Claude Code
@@ -32,6 +39,11 @@ my-project/                 ← you run the one-liner here; open THIS folder in 
 
 So if you type **`Recipe Box`**, you get the forge kit plus a local `recipe-box-app/` git repo with an
 initial commit.
+
+**Two folders, one of which becomes GitHub.** The outer folder (`my-project/`) is the *cockpit* — it holds
+the forge tooling and never goes to GitHub. The inner `<name>-app/` folder **is your actual project**: it's
+the only thing you push, and it becomes the GitHub repo where your code *and* the issues both live. (Your
+code won't show up next to the issues until you create that repo and push `<name>-app/` to it — see below.)
 
 **Requirements:** `git` and `jq`.
 

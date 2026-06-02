@@ -23,9 +23,18 @@ ponder → inscribe → forge      (ponder runs the interview + proposes the bre
 - If it has a `## Research first` section, that's your cue to do **initial prior-art research before grilling**: state in one line what you'll look into, then dispatch the **`forge-researcher`** subagent (see step 2) to survey how others solve this / best practices / what's out there. Fold its distilled answer into the opening questions — initial research often reshapes the build.
 - Once you've absorbed the seed, **retire it**: `rm .claude/forge/seed.md` so it doesn't re-trigger on a later run. (The worked-out idea now lives in your interview, and ultimately in the issues.)
 
-## 1. Interview — ONE question at a time
+## 1. Interview — ONE question at a time, via the AskUserQuestion UI
 
-Lean on the `grill-me` skill. Stress-test the idea by walking the decision tree, surfacing hidden assumptions, and resolving each fork **one question at a time** — ask, wait for the answer, then ask the next. Never batch questions or hand the user a questionnaire. You are settling:
+Lean on the `grill-me` skill. Stress-test the idea by walking the decision tree, surfacing hidden assumptions, and resolving each fork **one question at a time** — ask, wait for the answer, then ask the next. Never batch questions or hand the user a questionnaire.
+
+**Always ask through the `AskUserQuestion` tool — never as plain prose in your reply.** This is the interactive UI the user answers (it's how they answer from the Claude phone app / `/remote-control`; a free-text question in prose can't be answered there). Per question:
+
+- Send **one question object** per call (the one-question-at-a-time doctrine). Don't fan out 4 questions to dodge the rule.
+- Give it a short `header`, the full `question`, and **2–4 concrete options** — the plausible answers to that fork, each with a one-line `description` of the tradeoff. Proposing real options *is* the grilling; make them specific to this idea, not generic.
+- The UI always offers a free-text "Other" escape, so open-ended forks still work — frame the options as your best guesses and let the user override.
+- When their answer opens the next fork, ask the next question the same way.
+
+You are settling:
 
 - **Scope** — what's in, what's explicitly out.
 - **The shape of "done"** — what observable result proves the idea is built.
@@ -59,9 +68,7 @@ When the shape is clear, present the proposed breakdown and ask for a **single o
 - **Verification method** — `verify:test` for logic/backend (tests prove it) or `verify:visual` for UI (render/screenshot check). See CONTEXT.md: *verification method*.
 - **Machine-checkable acceptance criteria** — objective, verifiable conditions, not vibes ("`GET /api/items` returns 200 with a JSON array", not "the API works").
 
-End with the question, e.g.:
-
-> Proposed breakdown above — 4 issues, logic before UI. Reply `go` to create them, or tell me what to change.
+Present the breakdown itself as text (it's long-form), then put the **approval gate through the `AskUserQuestion` tool** so it's answerable from the phone — one question, e.g. header `Breakdown`, question "Proposed breakdown above — 4 issues, logic before UI. Create them?", options like **"Go — create the issues"** and **"Change something"** (the user types what to change via "Other").
 
 ## 5. On "go" → invoke /inscribe
 
@@ -71,7 +78,7 @@ End with the question, e.g.:
 ## Rules
 
 - **No code, no GitHub writes in ponder.** Understanding and a proposed breakdown only. `/inscribe` does the writes.
-- **One question at a time.** Never a questionnaire.
+- **Ask through the `AskUserQuestion` UI, not prose.** Every interview question and the approval gate go through the tool so they're answerable from the phone. One question object per call.
 - **Resolve forks before proposing.** A breakdown built on an unresolved question just defers the problem into `/forge`.
 - **One idea per ponder.** If two unrelated efforts surface, that's two separate ponders.
 - **Confirm before heavy research.** Scoped lookups run; broad fan-out asks first.
