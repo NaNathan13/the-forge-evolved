@@ -10,7 +10,7 @@ to merge or escalation by dispatching a **fresh subagent per issue**. Approval i
 that the loop runs hands-off until the batch is drained, then stops and reports.
 
 ```
-ponder → inscribe → forge      (forge drains the ready queue)
+prospect → ponder → inscribe → forge      (forge drains the ready queue)
 ```
 
 ## Where the code and board live (read this FIRST, every invocation)

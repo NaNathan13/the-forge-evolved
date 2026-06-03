@@ -86,7 +86,7 @@ verbatim. Otherwise leave GitHub to them.
 
 On exit 0, echo the essentials: where the kit installed, the local `<name>-app/` repo, and the next two
 steps — **set up GitHub via `docs/github-setup.md`**, then **open the project folder in Claude Code and run
-`/ponder`** (it reads the seed the installer left).
+`/prospect`** (it reads the seed the installer left, researches the idea on approval, then sends them into `/ponder`).
 
 On non-zero exit (collision with an existing folder, missing `git`/`jq`), surface the script's stderr
 verbatim and stop — do not paper over a partial scaffold.

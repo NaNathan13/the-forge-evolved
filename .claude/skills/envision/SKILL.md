@@ -10,7 +10,7 @@ description: Drive Anthropic's Claude Design through a structured, screenshot-ga
 It's a **utility**: invoke it whenever you're ready to design. It isn't a pipeline phase and `/forge` doesn't depend on it — but `/inscribe` and `/forge` signpost it for UI work.
 
 ```
-ponder → inscribe → forge        (envision is invoked between inscribe and forge, on demand, for UI slices)
+prospect → ponder → inscribe → forge    (envision is invoked between inscribe and forge, on demand, for UI slices)
 ```
 
 **Read `references/design-principles.md` once at the start of every run.** It carries the research-backed rules, the prompt templates, the completeness-audit checklist, and the batching heuristic that make the output good. This SKILL.md is the control flow; that file is the craft.

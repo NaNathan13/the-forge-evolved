@@ -37,6 +37,13 @@ The continuation mechanism behind the 30/40 context rule. State lives in GitHub 
 picks up the next issue). `/ponder` is the exception (no external state yet): it writes a distilled handoff to
 `.claude/forge/handoff.md` when it must checkpoint, which also lets `/inscribe` resume in a fresh context.
 
+## Prospect
+The pre-ponder warm-up (`/prospect`) — phase 0. Reads the kickoff seed (`.claude/forge/seed.md`, gated by a
+top-of-file `status:` flag), proposes prior-art research and runs it **on approval**, refines the vision in
+conversation, then writes `.claude/forge/intake.md` — the findings `/ponder` opens from (it survives a
+`/clear`). Reusable before any new idea, not just at kickoff. Writes only local docs (`intake.md` + flipping
+the seed flag from `todo` to `done` — it never deletes the seed); no code, no GitHub.
+
 ## Decisions
 
 > Hard-to-reverse, surprising-without-context, genuine-trade-off calls — the ones a future builder would
