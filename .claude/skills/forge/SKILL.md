@@ -160,6 +160,11 @@ gh issue edit <id> --repo "$REPO_SLUG" --add-label status:in-review --remove-lab
 git -C "$APP_DIR" diff main...<work-branch>   # the recorded work-branch; compute the diff yourself — the reviewer has no git/bash
 ```
 
+**Non-empty-diff guard.** If that diff is **empty**, the builder edited files but never committed (or did
+nothing). There is nothing to review or merge — do **not** dispatch the reviewer. Treat it as a builder
+failure: if rounds remain (< 3), retry (step f); otherwise escalate (step g, reason: "builder returned DONE
+with an empty committed diff").
+
 Dispatch a **fresh `forge-reviewer`** and give it ONLY:
 
 - the issue's **acceptance criteria**,
@@ -198,6 +203,7 @@ Pin the PR to the recorded **work-branch** explicitly so it doesn't depend on wh
 
 ```bash
 source .claude/forge/config
+git -C "$APP_DIR" push -u origin <work-branch>   # the branch is local-only until now; gh pr create needs it on the remote
 gh pr create --repo "$REPO_SLUG" --base main --head <work-branch> --title "<issue title>" --body "Closes #<id>"
 gh pr merge <work-branch> --repo "$REPO_SLUG" --squash --delete-branch
 ```
