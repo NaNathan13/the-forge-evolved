@@ -8,7 +8,7 @@ description: Phase 2 of the workflow — on /ponder's confirmation, create one G
 `/inscribe` turns the breakdown `/ponder` approved into GitHub issues, carrying ponder's recorded decisions into the ones they bind. It's the bridge between thinking and building. It runs on `/ponder`'s confirmation (same session), or standalone when an approved breakdown already exists.
 
 ```
-ponder → inscribe → forge      (inscribe files the issues and fills the ready queue)
+prospect → ponder → inscribe → forge      (inscribe files the issues and fills the ready queue)
 ```
 
 If invoked standalone in a fresh context, read `.claude/forge/handoff.md` first to recover the idea and slice breakdown, and `CONTEXT.md` (`## Project terms`, `## Decisions`) for the vocabulary and decisions ponder already pinned.

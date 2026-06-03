@@ -14,7 +14,13 @@ The whole system is three commands run in sequence:
 This doc is the one narrative for the whole thing. For the exact mechanics of any command, read its
 skill under `.claude/skills/`; this explains how the pieces fit and why.
 
-## The three commands
+## The four commands
+
+- **`/prospect`** — the pre-ponder warm-up (phase 0). Reads the kickoff seed (or a fresh idea), proposes
+  prior-art research and runs it **on your approval** (a read-only `forge-researcher` subagent), refines the
+  vision in conversation, then writes `.claude/forge/intake.md` — the findings `/ponder` opens from — and
+  recommends you run `/ponder`. Reusable before any new idea, not just at kickoff; writes no code and touches
+  no GitHub. See `.claude/skills/prospect/SKILL.md`.
 
 - **`/ponder`** — grill a fuzzy idea into shared understanding, one question at a time, researching
   unknowns on demand (via a read-only `forge-researcher` subagent). It writes no code and touches no
@@ -22,19 +28,18 @@ skill under `.claude/skills/`; this explains how the pieces fit and why.
   method, and machine-checkable acceptance criteria per slice — and waits for a one-word approval.
   See `.claude/skills/ponder/SKILL.md`.
 
-- **`/inscribe`** — on that approval (same session, or standalone from a handoff), it records the
-  durable decisions where they belong (project docs / CLAUDE.md, and a one-line lesson only if a
-  hard-won codebase fact emerged) and creates one GitHub issue per slice — each labeled
-  `status:ready` + exactly one `verify:test`/`verify:visual`, with acceptance criteria in the body
-  and a card added to the board, in dependency order (logic before the UI that depends on it).
-  See `.claude/skills/inscribe/SKILL.md`.
+- **`/inscribe`** — on that approval (same session, or standalone from a handoff), it creates one GitHub
+  issue per slice — each labeled `status:ready` + exactly one `verify:test`/`verify:visual`, with acceptance
+  criteria in the body and a card added to the board, in dependency order (logic before the UI that depends
+  on it) — and threads ponder's already-recorded decisions (pinned in `CONTEXT.md`) into the issues they
+  bind, since a builder reads its issue, not the glossary. See `.claude/skills/inscribe/SKILL.md`.
 
 - **`/forge`** — reads the `status:ready` issues, proposes them as a **batch**, and waits. Batch
   approval is the one human gate — the moment autonomy begins. After "go" it works each issue to
   merge or escalation hands-off, then **stops and reports**. It never auto-chains to the next batch.
   See `.claude/skills/forge/SKILL.md`.
 
-Run them in order. Don't `/forge` an empty queue — `/ponder` then `/inscribe` fill it first.
+Run them in order. Don't `/forge` an empty queue — `/prospect` → `/ponder` → `/inscribe` fill it first.
 
 ## The forge loop
 
@@ -91,8 +96,9 @@ The workflow treats the context window as a hard resource, not a soft suggestion
   PreToolUse hook *enforces* it — it denies tool calls at ≥40%. A real gate, not a label.
 - **Resume is `/clear` + re-run the command.** It works because state of record lives outside the
   session — in **GitHub issues/labels + git + `.claude/forge/loop-state`** — so a re-run reads the
-  board and the cursor and picks up at the next issue. `/ponder` is the one exception (no external
-  state yet): it checkpoints to `.claude/forge/handoff.md`.
+  board and the cursor and picks up at the next issue. The pre-board phases `/prospect` and `/ponder` are
+  the exception (no external state yet): they checkpoint to `.claude/forge/intake.md` and
+  `.claude/forge/handoff.md` respectively.
 - The orchestrator rarely hits the ceiling because it stays thin; the in-loop pressure valve is the
   builder's `TOO_LARGE` signal (below). Interactive skills self-checkpoint at ~35%, before they can
   get blocked mid-action.
@@ -159,5 +165,6 @@ want it to. Two pieces are worth calling out:
   runs once that secret exists.
 
 Set up GitHub, fill `PROJECT_NUMBER` in `.claude/forge/config`, then open the project folder in Claude Code
-and run `/ponder` (it reads the seed the installer left). See `.claude/skills/light-the-forge/SKILL.md` and
+and run `/prospect` (it reads the seed the installer left, then sends you into `/ponder`). See
+`.claude/skills/light-the-forge/SKILL.md` and
 `docs/github-setup.md`.

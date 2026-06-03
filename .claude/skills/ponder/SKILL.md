@@ -8,20 +8,18 @@ description: Phase 1 of the workflow — grill a fuzzy idea into shared understa
 `/ponder` turns a fuzzy idea into an agreed, sliced shape — pinning the vocabulary and decisions as it goes — then proposes the GitHub issue breakdown and, on your "go", invokes `/inscribe` to file the issues. All in one session.
 
 ```
-ponder → inscribe → forge      (ponder interviews, captures glossary + decisions, proposes the breakdown; inscribe files the issues)
+prospect → ponder → inscribe → forge      (ponder interviews from prospect's findings, captures glossary + decisions, proposes the breakdown; inscribe files the issues)
 ```
 
 **Hard line: no code, no GitHub writes during ponder.** You are reaching understanding and proposing a breakdown. The only files you may write are **local docs**: `.claude/forge/handoff.md` (the context checkpoint, below) and the **glossary + decisions** sections of `CONTEXT.md` as terms and calls get settled (step 1). No app code, no `gh` writes, no issues — `/inscribe` files those.
 
-## 0. First run: read the seed (and resume from handoff if one exists)
+## 0. First run: pick up where the work left off
 
-**Resume takes priority:** check `.claude/forge/handoff.md` first. If it exists, read it, resume from where it left off (idea, decisions reached, open questions, next step), then continue the interview from that point. Don't re-litigate settled decisions — skip the seed below.
+**Resume takes priority:** check `.claude/forge/handoff.md` first. If it exists, read it, resume from where it left off (idea, decisions reached, open questions, next step), then continue the interview from that point. Don't re-litigate settled decisions — skip the rest of this step.
 
-**Otherwise, this is a first run** — check `.claude/forge/seed.md`. The installer writes it from the answers you gave `light-the-forge`: the project description, and (if you asked for it) a `## Research first` note.
+**Otherwise, open from `/prospect`'s findings.** Read `.claude/forge/intake.md` — the warm starting point prospect leaves: the **refined idea**, a **research digest**, and the **open questions** it deliberately left for you. Open the interview from there; don't re-research what the digest already settled, and lead with its open questions.
 
-- Read the seed for the **idea** (the description) — open the interview from it instead of a blank slate; don't re-ask what it already states.
-- If it has a `## Research first` section, that's your cue to do **initial prior-art research before grilling**: state in one line what you'll look into, then dispatch the **`forge-researcher`** subagent (see step 2) to survey how others solve this / best practices / what's out there. Fold its distilled answer into the opening questions — initial research often reshapes the build.
-- Once you've absorbed the seed, **retire it**: `rm .claude/forge/seed.md` so it doesn't re-trigger on a later run. (The worked-out idea now lives in your interview, and ultimately in the issues.)
+**Fallback — no `intake.md` (prospect wasn't run).** Read `.claude/forge/seed.md` for the **idea** (the project description) and open from it instead of a blank slate; don't re-ask what it already states. If it carries a `## Research first` note, the user wanted prior art gathered first — **point them at `/prospect`** for that rather than running a broad fan-out mid-grill (scoped research-on-demand, step 2, still applies). Once consumed, flip the seed's flag to `status: done` — don't delete it; it's the original-vision record.
 
 ## 1. Interview — ONE question at a time, via the AskUserQuestion UI
 
@@ -51,7 +49,7 @@ Skip the grilling only when the work is genuinely small and unambiguous.
 
 ## 2. Research on demand (via forge-researcher)
 
-Grill first. When a question can't be settled from the codebase or known facts — an unfamiliar library, prior art, a fork you can't call — or to **truth-check a claim against the code** (step 1) — dispatch the **`forge-researcher`** subagent with ONE focused question. It returns a distilled answer, not a transcript; feed that into the next question.
+The big upfront prior-art sweep is `/prospect`'s job — here research is **scoped, on-demand gap-filling**. Grill first. When a question can't be settled from the codebase or known facts — an unfamiliar library, prior art, a fork you can't call — or to **truth-check a claim against the code** (step 1) — dispatch the **`forge-researcher`** subagent with ONE focused question. It returns a distilled answer, not a transcript; feed that into the next question.
 
 - **Confirm before any heavy or broad research fan-out.** A single scoped lookup — including a code-truth-check — can just run. Before launching broad/parallel research, state in one line what you intend and get a yes.
 - Research informs the interview. It writes nothing.

@@ -160,7 +160,7 @@ cyan  "  Description  : $PROJECT_ONE_LINER"
 if [[ -n "$RESEARCH_NOTE" ]]; then
   cyan "  Research     : $RESEARCH_NOTE"
 elif [[ "$DO_RESEARCH" =~ ^(y|Y|yes|YES)$ ]]; then
-  cyan "  Research     : (yes — /ponder will research as it grills the idea)"
+  cyan "  Research     : (yes — /prospect will research before you ponder)"
 else
   cyan "  Research     : (none)"
 fi
@@ -313,9 +313,10 @@ PROJECT_NUMBER=""   # TODO: set to your Projects v2 board number (docs/github-se
 EOF
 green "  ✓ .claude/forge/config (APP_DIR=$APP_DIR_NAME, REPO_SLUG=$REPO_SLUG)"
 
-# ─── 4. write the seed for /ponder (description + optional research note) ─────
+# ─── 4. write the seed for /prospect (description + optional research note) ───
 bold "Writing .claude/forge/seed.md…"
 {
+  printf '%s\n' '---' 'status: todo' '---' ''
   printf '# Initial idea — %s\n\n' "$PROJECT_NAME"
   printf '%s\n\n' "$PROJECT_ONE_LINER"
   if [[ "$DO_RESEARCH" =~ ^(y|Y|yes|YES)$ ]]; then
@@ -327,7 +328,8 @@ bold "Writing .claude/forge/seed.md…"
     fi
     printf '\n'
   fi
-  printf '<!-- /ponder reads this on first run, then retires it. Delete once the idea is underway. -->\n'
+  printf '<!-- /prospect reads this on first run and flips status to done (it does not delete it).\n'
+  printf '     /ponder falls back to this if /prospect was skipped. Keep it as the original-idea record. -->\n'
 } > "$OUTER/.claude/forge/seed.md"
 green "  ✓ .claude/forge/seed.md"
 
@@ -410,6 +412,7 @@ echo   "    • set the repo variables (FORGE_PROJECT_ID, FORGE_STATUS_FIELD_ID,
 echo   "    • set the FORGE_PROJECT_PAT secret (classic PAT, 'project' scope)"
 echo   "    • fill PROJECT_NUMBER (and confirm REPO_SLUG/BOARD_OWNER) in .claude/forge/config"
 echo
-echo "  Then: open this folder in Claude Code and run  /ponder"
+echo "  Then: open this folder in Claude Code and run  /prospect"
+echo "        (researches + warms the idea, then sends you into /ponder)"
 echo "        ($OUTER)"
 echo

@@ -106,5 +106,5 @@ The forge skills read this file to find and move issues on the board.
 
 ## Done
 
-Open the project folder in Claude Code and run `/ponder`. Once issues exist and a `status:*` label moves,
-the sync workflow mirrors it onto the board.
+Open the project folder in Claude Code and run `/prospect` (it researches + warms the idea, then sends you
+into `/ponder`). Once issues exist and a `status:*` label moves, the sync workflow mirrors it onto the board.

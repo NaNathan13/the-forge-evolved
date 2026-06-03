@@ -27,14 +27,16 @@ They run in `{{APP_DIR}}/`. A command genuinely not applicable to this project m
 
 ## Commands
 
+- `/prospect` — the pre-ponder warm-up: read the seed (or a fresh idea), propose + run prior-art research on
+  approval, refine the vision, write a findings file, then send you into `/ponder`. Reusable, not just at kickoff.
 - `/ponder` — grill a fuzzy idea into shared understanding (research as needed); ends by proposing the
   issue breakdown for one-word approval.
-- `/inscribe` — on approval, document the knowledge and create GitHub issues (labels + machine-checkable
-  acceptance criteria + board card).
+- `/inscribe` — on approval, create GitHub issues (labels + machine-checkable acceptance criteria + board
+  card) and thread ponder's recorded decisions into the issues they bind.
 - `/forge` — propose the batch of `status:ready` issues, and on approval drain it autonomously
   (build → review → merge per issue), then stop and report.
 
-Use them sequentially. Don't `/forge` without ready issues — `/ponder` then `/inscribe` fill the queue first.
+Use them sequentially. Don't `/forge` without ready issues — `/prospect` → `/ponder` → `/inscribe` fill the queue first.
 
 ## Context discipline (CRITICAL)
 
