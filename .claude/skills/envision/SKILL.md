@@ -36,7 +36,7 @@ Check `.claude/forge/envision.md`. If it exists, read it and **resume from the c
 
 Produce the brief via a **full quality pass**, not a template fill (`references/design-principles.md` has the anatomy + templates):
 
-1. **Short vibe/brand grill** — lean on `grill-me` to settle the product's voice/feel and hard constraints (anti-cliché, fonts to avoid). A few questions, not a questionnaire.
+1. **Short vibe/brand grill** — settle the product's voice/feel and hard constraints (anti-cliché, fonts to avoid). Grill one question at a time, leading with your recommended answer — a few questions, not a questionnaire.
 2. **Interactive completeness audit** — check the screen list against the product and **propose the usual gaps for accept/reject**: nav backbone, error/offline states, lifecycle actions (rename/archive/delete), empty states, loading states. The operator accepts or rejects each. (Checklist in the reference.)
 3. **Bake in the rules** — system-first, lock brand before screens, name the shared components, enumerate states + failure paths per screen, stack-correct semantic-token shape.
 
