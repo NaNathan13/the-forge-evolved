@@ -207,6 +207,34 @@ if [[ -n "${APP_DIR:-}" && -f "$WF_SRC" ]]; then
   fi
 fi
 
+# ─── wiring check (advisory) — catch gaps in project-owned files we don't touch ─
+# The updater never edits settings.json / config (they're yours). But a project
+# scaffolded by an OLD kit can be missing wiring the current kit expects. We don't
+# fix it — we just tell you, so new skills don't silently lack their plumbing.
+echo
+bold "Wiring check (project-owned files — not modified, just verified):"
+WIRING_WARN=0
+
+SETTINGS="$OUTER/.claude/settings.json"
+if [[ -f "$SETTINGS" ]]; then
+  grep -q 'statusline\.sh'   "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/statusline.sh (statusLine) — the context gauge won't show."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'ctx-gate\.sh'     "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/ctx-gate.sh (PreToolUse) — the 40% hard-stop gate is OFF."; WIRING_WARN=$((WIRING_WARN+1)); }
+else
+  yellow "  ! no .claude/settings.json — statusline + ctx-gate hook are unregistered."; WIRING_WARN=$((WIRING_WARN+1))
+fi
+
+CFG="$OUTER/.claude/forge/config"
+for key in APP_DIR REPO_SLUG BOARD_OWNER PROJECT_NUMBER; do
+  grep -Eq "^[[:space:]]*${key}=" "$CFG" || { yellow "  ! .claude/forge/config is missing the ${key} key — the forge skills read it."; WIRING_WARN=$((WIRING_WARN+1)); }
+done
+
+if [[ "$WIRING_WARN" -eq 0 ]]; then
+  printf '%s\n' "${DIM}    ok — settings.json + config have the keys the current kit expects.${N}"
+else
+  yellow "  ↳ $WIRING_WARN gap(s). The updater won't change project-owned files — compare against a fresh"
+  yellow "    scaffold (light-the-forge.sh) or docs/github-setup.md and add the missing wiring by hand."
+fi
+
 # ─── summary ──────────────────────────────────────────────────────────────────
 echo
 if [[ "$DRY_RUN" -eq 1 ]]; then

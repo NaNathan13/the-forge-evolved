@@ -83,6 +83,13 @@ It refreshes the **kit-owned** files (`.claude/skills`, `.claude/agents`, `.clau
 yourself survives. `--ref <branch|tag|sha>` pins a version; `--with-workflow` also refreshes the app repo's
 `sync-board.yml` (version-controlled — you commit it). Finish or `/scrub` any in-flight batch first.
 
+**First time (project predates the updater)?** You don't need the skill or script pre-installed — the curl
+one-liner fetches `update-forge.sh` from GitHub and only needs `.claude/forge/config` to exist. Running it
+once also installs the `/forge-update` skill itself (it's a kit-owned skill), so future updates are just
+"update the forge" in Claude. For a genuinely old project, the run ends with a **wiring check** that flags any
+project-owned gaps (a missing `ctx-gate` hook, missing `config` keys) it deliberately won't auto-fix —
+reconcile those against a fresh scaffold or `docs/github-setup.md`.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

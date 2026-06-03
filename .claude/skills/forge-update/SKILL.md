@@ -75,9 +75,20 @@ Or, from a local checkout of the-forge-evolved: `/path/to/update-forge.sh [--dry
 
 ### 3. Report
 
-Echo what changed (the script's summary count) and confirm project-owned files were left alone. If the kit
-changed how `/forge` or its agents behave, mention that the new behavior takes effect on the **next** command
-run — and that any **in-flight** batch should be finished or `/scrub`bed first.
+Echo what changed (the script's summary count) and confirm project-owned files were left alone. The script
+ends with a **wiring check** — if it flagged gaps (a missing `ctx-gate` hook in `settings.json`, missing
+`.claude/forge/config` keys), relay them: the updater deliberately won't touch project-owned files, so those
+need a manual fix against a fresh scaffold or `docs/github-setup.md`. If the kit changed how `/forge` or its
+agents behave, mention that the new behavior takes effect on the **next** command run — and that any
+**in-flight** batch should be finished or `/scrub`bed first.
+
+## Bootstrapping a project that predates the updater
+
+A project scaffolded before this skill existed won't have `/forge-update` or `update-forge.sh` locally — and
+that's fine. The curl one-liner in step 1 fetches the script from GitHub and only needs `.claude/forge/config`
+to exist. Running it once **installs the `/forge-update` skill itself** (it's a kit-owned skill under
+`.claude/skills/`), so the project gains the `/command` for next time. In an old project the user can't type
+`/forge-update` yet, so just run the curl one-liner directly (or the user runs it with `! curl …`).
 
 ## Anti-patterns
 
