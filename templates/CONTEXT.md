@@ -39,8 +39,22 @@ surfaced in the end-of-batch report. Never blocks the run waiting for a human; b
 `.claude/forge/loop-state`, so resume = `/clear` then re-run `/forge`. `/ponder` writes a distilled handoff to
 `.claude/forge/handoff.md` when it must checkpoint.
 
+**Prospect**: The pre-ponder warm-up (`/prospect`, phase 0). Reads the kickoff seed (gated by its top-of-file
+`status:` flag), proposes + runs prior-art research on approval, refines the vision, then writes
+`.claude/forge/intake.md` — the findings `/ponder` opens from. Reusable before any new idea; writes only local
+docs (flips the seed flag `todo`→`done`, never deletes it), no code/GitHub.
+
 ## Project terms
 
 <!-- Add project-specific terms here as you find ambiguity. -->
 
 (none yet — add as you find them)
+
+## Decisions
+
+> Hard-to-reverse, surprising-without-context, genuine-trade-off calls — the ones a future builder would
+> otherwise re-litigate. `/ponder` appends them here as they're settled (decision · why · what it rules out);
+> `/inscribe` threads the relevant one into the body of any issue it constrains, so the builder gets it where
+> it works. Skip the routine: only decisions meeting all three criteria earn an entry.
+
+(none yet — add as you settle them)

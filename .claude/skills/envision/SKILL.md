@@ -10,7 +10,7 @@ description: Drive Anthropic's Claude Design through a structured, screenshot-ga
 It's a **utility**: invoke it whenever you're ready to design. It isn't a pipeline phase and `/forge` doesn't depend on it — but `/inscribe` and `/forge` signpost it for UI work.
 
 ```
-ponder → inscribe → forge        (envision is invoked between inscribe and forge, on demand, for UI slices)
+prospect → ponder → inscribe → forge    (envision is invoked between inscribe and forge, on demand, for UI slices)
 ```
 
 **Read `references/design-principles.md` once at the start of every run.** It carries the research-backed rules, the prompt templates, the completeness-audit checklist, and the batching heuristic that make the output good. This SKILL.md is the control flow; that file is the craft.
@@ -36,7 +36,7 @@ Check `.claude/forge/envision.md`. If it exists, read it and **resume from the c
 
 Produce the brief via a **full quality pass**, not a template fill (`references/design-principles.md` has the anatomy + templates):
 
-1. **Short vibe/brand grill** — lean on `grill-me` to settle the product's voice/feel and hard constraints (anti-cliché, fonts to avoid). A few questions, not a questionnaire.
+1. **Short vibe/brand grill** — settle the product's voice/feel and hard constraints (anti-cliché, fonts to avoid). Grill one question at a time, leading with your recommended answer — a few questions, not a questionnaire.
 2. **Interactive completeness audit** — check the screen list against the product and **propose the usual gaps for accept/reject**: nav backbone, error/offline states, lifecycle actions (rename/archive/delete), empty states, loading states. The operator accepts or rejects each. (Checklist in the reference.)
 3. **Bake in the rules** — system-first, lock brand before screens, name the shared components, enumerate states + failure paths per screen, stack-correct semantic-token shape.
 
