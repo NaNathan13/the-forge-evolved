@@ -68,12 +68,17 @@ Provision the board, labels, variables, and secret per [docs/github-setup.md](do
 ## Updating an installed project
 
 When the kit improves, pull the changes into a project you scaffolded earlier — run this from the project's
-**outer folder** (the one with `.claude/forge/config`), or just ask Claude to `/forge-update`:
+**outer folder** (the one with `.claude/forge/config`), or just ask Claude to `/forge-update`.
+
+Preview what would change (nothing is written):
 
 ```bash
-# preview what would change (nothing is written):
 curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/update-forge.sh | bash -s -- --dry-run
-# apply:
+```
+
+Apply:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/update-forge.sh | bash
 ```
 
