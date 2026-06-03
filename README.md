@@ -65,6 +65,24 @@ that layout by hand: put the forge `.claude/` tooling in an outer folder, keep y
 subfolder, and write `.claude/forge/config` with `APP_DIR`, `REPO_SLUG`, `BOARD_OWNER`, and `PROJECT_NUMBER`.
 Provision the board, labels, variables, and secret per [docs/github-setup.md](docs/github-setup.md).
 
+## Updating an installed project
+
+When the kit improves, pull the changes into a project you scaffolded earlier — run this from the project's
+**outer folder** (the one with `.claude/forge/config`), or just ask Claude to `/forge-update`:
+
+```bash
+# preview what would change (nothing is written):
+curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/update-forge.sh | bash -s -- --dry-run
+# apply:
+curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/update-forge.sh | bash
+```
+
+It refreshes the **kit-owned** files (`.claude/skills`, `.claude/agents`, `.claude/hooks`, `statusline.sh`,
+`docs/github-setup.md`) and leaves every **project-owned** file untouched (`.claude/forge/*`, `settings.json`,
+`CLAUDE.md`, `CONTEXT.md`, `.knowledge/lessons.md`). It never deletes local files, so a skill you added
+yourself survives. `--ref <branch|tag|sha>` pins a version; `--with-workflow` also refreshes the app repo's
+`sync-board.yml` (version-controlled — you commit it). Finish or `/scrub` any in-flight batch first.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
