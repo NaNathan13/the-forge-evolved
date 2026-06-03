@@ -1,17 +1,17 @@
 ---
 name: inscribe
-description: Phase 2 of the workflow — on /ponder's confirmation, document the worked-out knowledge where it belongs, then create one GitHub issue per slice (labels + machine-checkable acceptance criteria + board card) in dependency order. Invoked by /ponder on "go"; also callable standalone when the breakdown is already settled. Triggered by /inscribe, "write it up", "create the issues".
+description: Phase 2 of the workflow — on /ponder's confirmation, create one GitHub issue per slice (labels + machine-checkable acceptance criteria + board card) in dependency order, threading ponder's already-recorded decisions into the issues they bind. Invoked by /ponder on "go"; also callable standalone when the breakdown is already settled. Triggered by /inscribe, "write it up", "create the issues".
 ---
 
-# /inscribe — record the knowledge, create the issues
+# /inscribe — file the issues, carry the decisions in
 
-`/inscribe` turns the breakdown `/ponder` approved into durable docs and GitHub issues. It's the bridge between thinking and building. It runs on `/ponder`'s confirmation (same session), or standalone when an approved breakdown already exists.
+`/inscribe` turns the breakdown `/ponder` approved into GitHub issues, carrying ponder's recorded decisions into the ones they bind. It's the bridge between thinking and building. It runs on `/ponder`'s confirmation (same session), or standalone when an approved breakdown already exists.
 
 ```
-ponder → inscribe → forge      (inscribe records the plan and fills the ready queue)
+ponder → inscribe → forge      (inscribe files the issues and fills the ready queue)
 ```
 
-If invoked standalone in a fresh context, read `.claude/forge/handoff.md` first to recover the idea, decisions, and slice breakdown.
+If invoked standalone in a fresh context, read `.claude/forge/handoff.md` first to recover the idea and slice breakdown, and `CONTEXT.md` (`## Project terms`, `## Decisions`) for the vocabulary and decisions ponder already pinned.
 
 ## Where things live (read the config first)
 
@@ -26,11 +26,12 @@ Every `gh` command below targets the app repo — add `--repo "$REPO_SLUG"`. The
 step 1 (CLAUDE.md / CONTEXT.md / `.knowledge/`) live in **this outer folder**, not in the app subfolder.
 `source .claude/forge/config` at the start of any Bash block that uses `$REPO_SLUG`/`$BOARD_OWNER`/`$PROJECT_NUMBER`.
 
-## 1. Document the worked-out knowledge
+## 1. Carry the knowledge into the issues (don't re-document it)
 
-Put the knowledge where it belongs so `/forge` and future sessions reuse it instead of re-deriving it:
+`/ponder` already pinned the vocabulary and the qualifying decisions into `CONTEXT.md` (`## Project terms`, `## Decisions`) during the interview. Your job is to **deliver** that knowledge where the builder will actually meet it, and to capture only what ponder didn't:
 
-- **Project docs / CLAUDE.md** — fold in the durable decisions: scope, the shape of "done", architecture calls, any conventions settled during ponder. Edit the right existing doc; don't spawn redundant files.
+- **Thread the constraining decisions into the issues.** For each slice, check `CONTEXT.md` `## Decisions` for a call that binds it — a builder reads its issue, not the glossary. Quote the relevant decision (decision · why · what it rules out) into that issue's body so the constraint travels with the work.
+- **CLAUDE.md — only the gaps.** If a durable call (scope, the shape of "done", an architecture convention) belongs in `CLAUDE.md` and isn't already there or in `CONTEXT.md`, fold it into the right existing doc. Don't re-record what ponder already wrote; don't spawn redundant files.
 - **`.knowledge/lessons.md`** — append a **one-line** lesson **only if** a hard-won, reusable fact about *this codebase* emerged (a non-obvious gotcha, a binding constraint). **HIGH BAR — usually nothing.** Idea-specific detail belongs in the issue, not here.
 
 ## 2. Create each GitHub issue
@@ -78,6 +79,7 @@ If any **`verify:visual`** (UI) issues were created, add a one-line signpost —
 ## Rules
 
 - **Issues are the unit.** No plan files — the worked-out plan lives in the docs + the GitHub issues + their acceptance criteria.
+- **Don't re-document.** ponder already wrote the glossary + decisions to `CONTEXT.md`; inscribe *delivers* the constraining decisions into the issues that need them — it doesn't copy them back into `CONTEXT.md`.
 - **Dependency order.** Logic/backend issues before the UI that depends on them.
 - **Acceptance criteria must be machine-checkable.** No "works correctly" — objective conditions only.
 - **Exactly one `verify:*` per issue**, plus `status:ready`. No other labels at creation.

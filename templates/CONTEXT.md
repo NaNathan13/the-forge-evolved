@@ -44,3 +44,12 @@ surfaced in the end-of-batch report. Never blocks the run waiting for a human; b
 <!-- Add project-specific terms here as you find ambiguity. -->
 
 (none yet — add as you find them)
+
+## Decisions
+
+> Hard-to-reverse, surprising-without-context, genuine-trade-off calls — the ones a future builder would
+> otherwise re-litigate. `/ponder` appends them here as they're settled (decision · why · what it rules out);
+> `/inscribe` threads the relevant one into the body of any issue it constrains, so the builder gets it where
+> it works. Skip the routine: only decisions meeting all three criteria earn an entry.
+
+(none yet — add as you settle them)
