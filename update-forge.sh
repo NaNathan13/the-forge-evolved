@@ -207,18 +207,46 @@ if [[ -n "${APP_DIR:-}" && -f "$WF_SRC" ]]; then
   fi
 fi
 
+# ─── permission baseline (additive merge — only the ABSENT keys) ──────────────
+# settings.json is project-owned and we never override your edits. But the
+# bypass+deny permission baseline is kit policy, so we add defaultMode/deny ONLY
+# when they're missing — an existing defaultMode or a custom deny list is left
+# exactly as you set it (jq's has() guards each key independently).
+SETTINGS="$OUTER/.claude/settings.json"
+if [[ -f "$SETTINGS" ]] && command -v jq >/dev/null 2>&1 && jq -e . "$SETTINGS" >/dev/null 2>&1; then
+  if ! jq -e '(.permissions.defaultMode != null) and (.permissions.deny | type == "array")' "$SETTINGS" >/dev/null 2>&1; then
+    if [[ "$DRY_RUN" -eq 0 ]]; then
+      tmp="$(mktemp)"
+      if jq '
+            .permissions = (.permissions // {})
+          | (if (.permissions | has("defaultMode")) then . else .permissions.defaultMode = "bypassPermissions" end)
+          | (if (.permissions | has("deny"))        then . else .permissions.deny = $deny end)
+          ' \
+          --argjson deny '["Bash(git push --force:*)","Bash(git push -f:*)","Bash(git reset --hard:*)","Bash(git clean -f:*)"]' \
+          "$SETTINGS" > "$tmp" 2>/dev/null; then
+        mv "$tmp" "$SETTINGS"
+        green "  + permission baseline (defaultMode/deny) added to settings.json (your other settings untouched)"; CHANGES=$((CHANGES+1))
+      else
+        rm -f "$tmp"; yellow "  ! couldn't merge the permission baseline into settings.json — add defaultMode/deny by hand."
+      fi
+    else
+      cyan "  ~ permission baseline (defaultMode/deny) would be added to settings.json"; CHANGES=$((CHANGES+1))
+    fi
+  fi
+fi
+
 # ─── wiring check (advisory) — catch gaps in project-owned files we don't touch ─
-# The updater never edits settings.json / config (they're yours). But a project
-# scaffolded by an OLD kit can be missing wiring the current kit expects. We don't
-# fix it — we just tell you, so new skills don't silently lack their plumbing.
+# The updater never overrides settings.json / config (they're yours; it only adds
+# the absent permission baseline above). A project scaffolded by an OLD kit can be
+# missing wiring the current kit expects. We don't fix the rest — we just tell you.
 echo
 bold "Wiring check (project-owned files — not modified, just verified):"
 WIRING_WARN=0
 
-SETTINGS="$OUTER/.claude/settings.json"
 if [[ -f "$SETTINGS" ]]; then
   grep -q 'statusline\.sh'   "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/statusline.sh (statusLine) — the context gauge won't show."; WIRING_WARN=$((WIRING_WARN+1)); }
   grep -q 'ctx-gate\.sh'     "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/ctx-gate.sh (PreToolUse) — the 40% hard-stop gate is OFF."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'bypassPermissions' "$SETTINGS" || { yellow "  ! settings.json has no bypassPermissions baseline — you'll keep getting permission prompts (install jq so the updater can add it)."; WIRING_WARN=$((WIRING_WARN+1)); }
 else
   yellow "  ! no .claude/settings.json — statusline + ctx-gate hook are unregistered."; WIRING_WARN=$((WIRING_WARN+1))
 fi

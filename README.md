@@ -52,6 +52,20 @@ plus a local `recipe-box-app/` git repo with an initial commit.
 issues, set up the GitHub side (the repo, Projects v2 board, labels, variables, and PAT secret are yours to
 own): follow **[docs/github-setup.md](docs/github-setup.md)**.
 
+## Permissions
+
+The kit ships a low-friction permission posture so autonomous `/forge` runs aren't interrupted: the outer
+`.claude/settings.json` sets `permissions.defaultMode: "bypassPermissions"` (Claude won't prompt) plus a small
+`permissions.deny` net that hard-fails repo destroyers — force-push, `git reset --hard`, `git clean -f`. Under
+bypass the only safety left is that deny list, the built-in `rm -rf /` / `rm -rf ~` circuit breakers, and the
+`ctx-gate` context hook — all still fire. `light-the-forge.sh` writes this for new installs; `update-forge.sh`
+adds it to existing ones only when absent (your own edits are never overridden).
+
+> **Caveat:** if your user-level or a managed settings file sets `permissions.disableBypassPermissionsMode:
+> "disable"`, it overrides the project setting and you'll be prompted again — remove it (or whitelist the
+> project) to get the no-prompt behavior. macOS folder-access prompts are separate (OS-level TCC): grant
+> your editor **Full Disk Access** in System Settings to stop those.
+
 ## Learn more
 
 - **[docs/how-the-forge-evolved-works.md](docs/how-the-forge-evolved-works.md)** — the full narrative: the
