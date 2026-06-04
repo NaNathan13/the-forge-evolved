@@ -34,6 +34,12 @@ Use them sequentially. Don't `/forge` without ready issues — `/prospect` → `
   30/40 rule is structural, not a constant fight.
 - **The reviewer is read-only and a different model** than the builder — it structurally cannot edit code to
   make it pass.
+- **Permission posture: `bypassPermissions` + a small `deny` net.** `.claude/settings.json` sets
+  `permissions.defaultMode: "bypassPermissions"` (never prompt) plus a `deny` list that hard-fails repo
+  destroyers (force-push, `git reset --hard`, `git clean -f`). The *only* backstops under bypass are that
+  deny list, the built-in `rm -rf /` / `rm -rf ~` circuit breakers, and the `ctx-gate` hook (all still fire).
+  Caveat: a user/managed `disableBypassPermissionsMode: "disable"` overrides it — then you'll be prompted
+  again. See CONTEXT.md: *Permission baseline*.
 - **Use absolute paths in Bash.** The working directory resets between tool calls.
 - **Skills load on demand** when their `/command` runs; role-based agents live in `.claude/agents/`.
 - **Keep this file <100 lines.** Only CLAUDE.md loads every session — push detail to skills, glossary to

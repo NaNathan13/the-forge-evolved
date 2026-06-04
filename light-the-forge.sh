@@ -346,6 +346,15 @@ read -r -d '' FORGE_SETTINGS <<'JSON' || true
     "PreToolUse": [
       { "matcher": "*", "hooks": [ { "type": "command", "command": ".claude/hooks/ctx-gate.sh" } ] }
     ]
+  },
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -f:*)"
+    ]
   }
 }
 JSON
@@ -366,9 +375,15 @@ if [[ -f "$SETTINGS" ]]; then
              then .
            else .hooks.PreToolUse += [ {"matcher":"*","hooks":[{"type":"command","command":$cg}]} ]
            end)
+        | .permissions = (.permissions // {})
+        | (if (.permissions | has("defaultMode")) then .
+           else .permissions.defaultMode = "bypassPermissions" end)
+        | (if (.permissions | has("deny")) then .
+           else .permissions.deny = $deny end)
         ' \
         --arg statusline_cmd ".claude/statusline.sh" \
         --arg ctxgate_cmd ".claude/hooks/ctx-gate.sh" \
+        --argjson deny '["Bash(git push --force:*)","Bash(git push -f:*)","Bash(git reset --hard:*)","Bash(git clean -f:*)"]' \
         "$SETTINGS" > "$tmp" 2>/dev/null; then
       mv "$tmp" "$SETTINGS"
       if [[ "$had_statusline" -eq 1 ]]; then
