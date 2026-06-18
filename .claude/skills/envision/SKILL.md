@@ -24,7 +24,7 @@ prospect → ponder → inscribe → forge    (envision is invoked between inscr
 
 ## 0. Resume-awareness (first thing, every run)
 
-Check `.claude/forge/envision.md`. If it exists, read it and **resume from the cursor** — the locked brand, the design-system reference, the agreed batch plan, and the per-checkpoint status (pending / approved). Don't re-litigate locked decisions or re-design approved screens. If there's no state file, start fresh at step 1.
+Check `.forge/envision.md`. If it exists, read it and **resume from the cursor** — the locked brand, the design-system reference, the agreed batch plan, and the per-checkpoint status (pending / approved). Don't re-litigate locked decisions or re-design approved screens. If there's no state file, start fresh at step 1.
 
 ## 1. Inputs & stack detection
 
@@ -40,7 +40,7 @@ Produce the brief via a **full quality pass**, not a template fill (`references/
 2. **Interactive completeness audit** — check the screen list against the product and **propose the usual gaps for accept/reject**: nav backbone, error/offline states, lifecycle actions (rename/archive/delete), empty states, loading states. The operator accepts or rejects each. (Checklist in the reference.)
 3. **Bake in the rules** — system-first, lock brand before screens, name the shared components, enumerate states + failure paths per screen, stack-correct semantic-token shape.
 
-Save the brief to `docs/design/brief.md` (under the app dir if the project is split-layout).
+Save the brief to `docs/design/brief.md`.
 
 ## 3. The checkpoint loop (courier model — you are the relay)
 
@@ -70,8 +70,8 @@ After the screens, offer to have Claude Design wire a **clickable prototype** of
 
 ## 5. State & context discipline
 
-- After each approved checkpoint, refresh `.claude/forge/envision.md`: locked brand, design-system reference, batch plan, per-checkpoint status, the next step.
-- This is a long interactive session — honor the 30/40 rule. **At ~35%**, refresh the state file and tell the operator: `/clear`, then re-run `/envision` (it resumes from state). Don't push to the hard gate.
+- After each approved checkpoint, refresh `.forge/envision.md`: locked brand, design-system reference, batch plan, per-checkpoint status, the next step.
+- This is a long interactive session — honor the 40/50 rule. **At the 40% warn**, refresh the state file and tell the operator: `/clear`, then re-run `/envision` (it resumes from state). Don't push to the hard gate.
 
 ## 6. Output — the handoff bundle (no app code)
 
@@ -79,9 +79,9 @@ When the batches are done:
 
 - **Have Claude Design author the handoff bundle**, then export it — it carries all the RN-translation context (conic-ring→SVG, dashed borders, swipe, safe areas), so let it write the Markdown: `README.md` / `tokens.md` (token map → the stack's token shape) / `components.md` (shared primitives + props + RN notes) / `screens/*.md` (states + components + a navigation contract). Export the whole project (operator-driven — "Handoff to Claude Code" / .zip) into `docs/design/`, alongside the raw HTML/CSS and screenshots.
 - **Integrate + reconcile (operator side — you can't fetch the canvas).** When the bundle lands in the repo:
-  - **Reconcile the issue tags — Claude Design GUESSES issue numbers and gets them wrong.** Verify every `screens/*.md` / README / HANDOFF tag against the *real* GitHub issues and correct them; never trust the export's numbers.
+  - **Reconcile the task tags — Claude Design GUESSES task numbers and gets them wrong.** Verify every `screens/*.md` / README / HANDOFF tag against the *real* `.forge/tasks/` ids and correct them; never trust the export's numbers.
   - **Watch for gitignored screenshots.** A global `screenshots/` ignore rule will silently drop the reference shots — confirm they actually get tracked (add a scoped exception if needed), or the bundle lands incomplete.
-- **Optionally close the loop to issues** — if the project gates UI behind a design label, offer to clear it / mark the UI issues ready to build, and link each issue to its `screens/*.md`. **Detect the project's label convention; do not assume one.** No code, no token porting, no component scaffolding — those belong to `/forge`.
+- **Optionally link each UI task to its design** — link the relevant `.forge/tasks/` UI task to its `screens/*.md` so the builder meets the design where it works. There are no labels to clear (a task is already `status: ready`); no code, no token porting, no component scaffolding — those belong to `/forge`.
 
 ## Rules
 
@@ -91,5 +91,5 @@ When the batches are done:
 - **One batch at a time.** Verify each before the next; the hero screen gets a solo pass.
 - **No app code.** `/envision` produces designs + a handoff; `/forge` builds them.
 - **Don't invent the product.** A defined concept is the input; this is design, not `/ponder`.
-- **Never trust the export's issue numbers.** Claude Design guesses them — reconcile every tag against real issues on integration.
+- **Never trust the export's task numbers.** Claude Design guesses them — reconcile every tag against the real `.forge/tasks/` ids on integration.
 - **Read `references/design-principles.md` every run** — don't rely on memory for the craft.
