@@ -427,7 +427,10 @@ if ! git -C "$DIR" config user.email >/dev/null 2>&1; then
 fi
 git -C "$DIR" ${COMMIT_IDENT[@]+"${COMMIT_IDENT[@]}"} commit -q -m "chore: initial scaffold (The Forge)" \
   || die "Failed to create the initial commit in $DIR."
-green "  ✓ initial commit"
+# Force the default branch to `main` — the forge loop squash-merges into `main` regardless of
+# the machine's git init.defaultBranch (which may be `master`).
+git -C "$DIR" branch -M main 2>/dev/null || true
+green "  ✓ initial commit (on main)"
 
 # ─── 7. summary ────────────────────────────────────────────────────────────────
 echo
