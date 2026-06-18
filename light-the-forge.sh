@@ -30,6 +30,13 @@
 #   /path/to/light-the-forge.sh                 # scaffold into the current dir
 #   /path/to/light-the-forge.sh <project-dir>   # scaffold into the named dir
 #
+# Non-interactive (no prompts — used by the /light-forge skill & CI). --yes fills any
+# unspecified answer with its default; --name is required under --yes:
+#   light-the-forge.sh --name "Recipe Box" --deploy-type internal --no-research --yes [<dir>]
+#   light-the-forge.sh --name "Recipe Box" --description "..." --research-note "prior art" --yes
+#   Flags: --name --description/--desc --deploy-type/--deploy (public|internal)
+#          --research-note "<x>" (implies research) | --research | --no-research | --yes/-y
+#
 # Requirements: git, jq.
 
 set -euo pipefail
@@ -81,6 +88,33 @@ if ! is_forge_checkout; then
   SRC="$CLONE_DIR"
 fi
 
+# ─── flags (non-interactive mode — used by the /light-forge skill & CI) ───────
+# Any answer can be supplied as a flag; --yes runs with zero prompts (defaults fill
+# anything not given). With no flags, the script stays fully interactive (/dev/tty).
+CLI_NAME="" CLI_DESC="" CLI_DEPLOY="" CLI_RESEARCH="" CLI_NOTE="" ASSUME_YES=0
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --name)            CLI_NAME="${2:-}"; shift 2 ;;
+    --name=*)          CLI_NAME="${1#*=}"; shift ;;
+    --description|--desc) CLI_DESC="${2:-}"; shift 2 ;;
+    --description=*)   CLI_DESC="${1#*=}"; shift ;;
+    --desc=*)          CLI_DESC="${1#*=}"; shift ;;
+    --deploy-type|--deploy) CLI_DEPLOY="${2:-}"; shift 2 ;;
+    --deploy-type=*)   CLI_DEPLOY="${1#*=}"; shift ;;
+    --deploy=*)        CLI_DEPLOY="${1#*=}"; shift ;;
+    --research-note)   CLI_NOTE="${2:-}"; CLI_RESEARCH="y"; shift 2 ;;
+    --research-note=*) CLI_NOTE="${1#*=}"; CLI_RESEARCH="y"; shift ;;
+    --research)        CLI_RESEARCH="y"; shift ;;
+    --no-research)     CLI_RESEARCH="n"; shift ;;
+    --yes|-y)          ASSUME_YES=1; shift ;;
+    --)                shift; while [[ $# -gt 0 ]]; do POSITIONAL+=("$1"); shift; done ;;
+    -*)                die "Unknown flag: $1" ;;
+    *)                 POSITIONAL+=("$1"); shift ;;
+  esac
+done
+set -- ${POSITIONAL[@]+"${POSITIONAL[@]}"}
+
 # ─── resolve the project folder (the ONE repo; Claude Code runs here) ─────────
 DIR="${1:-$(pwd)}"
 [[ -d "$DIR" ]] || die "Project directory does not exist: $DIR"
@@ -129,22 +163,34 @@ slugify() {
 
 echo
 bold "Tell me about the project"
-ask PROJECT_NAME       "Project name (proper casing, e.g. Recipe Box)"   ""
+# Each field: use the flag if given; else default (when --yes) or ask interactively.
+if   [[ -n "$CLI_NAME" ]];     then PROJECT_NAME="$CLI_NAME"
+elif [[ "$ASSUME_YES" -eq 1 ]]; then die "--yes needs --name (no interactive prompt available)."
+else ask PROJECT_NAME "Project name (proper casing, e.g. Recipe Box)" ""; fi
 [[ -n "$PROJECT_NAME" ]] || die "Project name is required."
-ask PROJECT_ONE_LINER  "One-line description of what you're building"    "A project built with The Forge."
+
+if   [[ -n "$CLI_DESC" ]];     then PROJECT_ONE_LINER="$CLI_DESC"
+elif [[ "$ASSUME_YES" -eq 1 ]]; then PROJECT_ONE_LINER="A project built with The Forge."
+else ask PROJECT_ONE_LINER "One-line description of what you're building" "A project built with The Forge."; fi
+
 # Deploy tier — the homelab docker network this app attaches to (decision 2 / config).
-ask DEPLOY_TYPE        "Deploy type — public | internal"                 "internal"
+if   [[ -n "$CLI_DEPLOY" ]];   then DEPLOY_TYPE="$CLI_DEPLOY"
+elif [[ "$ASSUME_YES" -eq 1 ]]; then DEPLOY_TYPE="internal"
+else ask DEPLOY_TYPE "Deploy type — public | internal" "internal"; fi
 case "$DEPLOY_TYPE" in
   public|internal) ;;
   *) die "Deploy type must be 'public' or 'internal' (got '$DEPLOY_TYPE')." ;;
 esac
-ask DO_RESEARCH        "Kick off initial research before building? (y/N)" "N"
+
 RESEARCH_NOTE=""
-case "$DO_RESEARCH" in
-  y|Y|yes|YES)
-    ask RESEARCH_NOTE  "  What should /prospect research first?"         ""
-    ;;
-esac
+if   [[ -n "$CLI_RESEARCH" ]]; then DO_RESEARCH="$CLI_RESEARCH"; RESEARCH_NOTE="$CLI_NOTE"
+elif [[ "$ASSUME_YES" -eq 1 ]]; then DO_RESEARCH="n"
+else
+  ask DO_RESEARCH "Kick off initial research before building? (y/N)" "N"
+  case "$DO_RESEARCH" in
+    y|Y|yes|YES) ask RESEARCH_NOTE "  What should /prospect research first?" "" ;;
+  esac
+fi
 
 # ─── derive names ─────────────────────────────────────────────────────────────
 SLUG="$(slugify "$PROJECT_NAME")"
@@ -166,10 +212,12 @@ else
   cyan "  Research     : (none)"
 fi
 echo
-ask CONFIRM "Proceed? (Y/n)" "Y"
-case "$CONFIRM" in
-  n|N|no|NO) die "Aborted — nothing was created." ;;
-esac
+if [[ "$ASSUME_YES" -eq 0 ]]; then
+  ask CONFIRM "Proceed? (Y/n)" "Y"
+  case "$CONFIRM" in
+    n|N|no|NO) die "Aborted — nothing was created." ;;
+  esac
+fi
 
 # ─── 1. install the forge kit (.claude/, .knowledge/) ─────────────────────────
 echo
