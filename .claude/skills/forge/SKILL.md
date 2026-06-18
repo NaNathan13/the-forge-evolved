@@ -50,6 +50,7 @@ attempt=2                  # builder→reviewer round count for the cursor task
 work-branch=forge/task-002-r2   # resolved branch (may carry -r2/-r3)
 phase=in-review            # forging | in-review  (TRANSIENT — never written to the task file)
 thread=0                   # thread of the cursor task
+pre-thread=<sha>           # main SHA when the current thread opened — rollback target for its deploy
 ```
 
 Keep it current after every step so an interrupted run resumes cleanly. `phase` lives **only** here — a task
@@ -121,6 +122,10 @@ that recorded name everywhere below — never re-derive it, or a retried `-r2`/`
 
 Set `phase=forging` and `thread=<task's thread>` in `run-state`. **Do not touch the task file's `status`** —
 it stays `ready` until it resolves to `done`/`needs-human`. `forging` is transient run-state, never persisted.
+
+If this task **opens a new thread** (its `thread` differs from the last completed task, or it's the batch's
+first task), also record `pre-thread=$(git rev-parse main)` in `run-state` — the rollback target if this
+thread's per-thread deploy (step j) fails.
 
 ### c. Dispatch a fresh forge-builder
 
@@ -248,6 +253,68 @@ Branch on the result (mutually exclusive):
 
 Update `.forge/run-state` (advance the cursor to the next task, reset `attempt=1`, clear `work-branch`).
 Capture the builder's and reviewer's **context% + round count** from their distilled returns, for the report.
+
+### j. Thread boundary — deploy + UAT smoke + project (per completed thread)
+
+A **thread is the deploy unit.** After advancing, check whether the cursor just **crossed a thread boundary**
+— the next task's `thread` differs from the one just finished, **or** the batch is now drained. If it did,
+the thread that just completed is ready to validate at runtime. (If the next task is the same thread, skip
+this step and keep building.)
+
+Only `status: done` tasks count — if every task in the thread escalated, there's nothing to deploy; skip.
+
+**Deploy + health-check** (gated on `STACK_DIR` set — before the stack exists, e.g. an early skeleton, skip
+with a one-line note):
+
+```bash
+source .forge/config
+[ -n "$STACK_DIR" ] || { echo "STACK_DIR unset — skipping deploy for this thread"; }
+docker compose -f "$STACK_DIR/compose.yaml" up -d --build
+curl -fsS --retry 5 --retry-delay 2 "http://localhost:$CONTAINER_PORT/" >/dev/null   # health-check
+```
+
+**UAT smoke** — not just a health curl: exercise the thread's **real end-to-end path** (the thinnest user
+journey this thread delivers — e.g. `POST /api/items` then `GET /api/items` returns it). Use the thread's
+own acceptance criteria to choose the path.
+
+- **Deploy or smoke FAILS** → roll back to the **pre-thread image** and escalate (don't auto-continue):
+  ```bash
+  git revert --no-edit "$(grep pre-thread .forge/run-state | cut -d= -f2)"..HEAD   # revert the thread's commits
+  [ -n "$STACK_DIR" ] && docker compose -f "$STACK_DIR/compose.yaml" up -d --build  # redeploy the pre-thread image
+  ```
+  Append a `.forge/needs-human.md` item (`- [ ] thread <n> deploy-failed: <what broke>. Recover: …`), commit
+  the state change, record `thread <n> DEPLOY-FAILED`, and **stop the hands-off run** (a failed thread is a
+  natural stop — Nate's recovery path).
+- **Deploy + smoke PASS** → **project to the PM hub** (below), then **auto-continue** to the next thread.
+
+#### Projection to the PM hub (gated; local fallback otherwise)
+
+Gate on `PM_HUB_DIR` set **and** the dir exists **and** `PM_SLUG` set. If any is missing, the local `.forge/`
+files remain the source of truth — print one line and continue (graceful degradation, no error):
+
+```bash
+source .forge/config
+HUB="$PM_HUB_DIR/projects/$PM_SLUG"
+if [ -n "$PM_HUB_DIR" ] && [ -d "$PM_HUB_DIR" ] && [ -n "$PM_SLUG" ] && [ -d "$HUB" ]; then
+  : project   # steps below
+else
+  echo "PM hub not configured — projection skipped; .forge/ files are the source of truth"
+fi
+```
+
+When projecting, all **one-way (up) and coarse**:
+
+1. **`meta.yml`** — set `deployed_url:` (the thread's live URL), bump `updated:` to `$(date +%F)`, and write a
+   **coarse progress strip** `progress: "<n done>/<total> tasks"` (count `status: done` vs all files in
+   `.forge/tasks/`). Don't write per-task churn into the curated roadmap.
+2. **Research** — `cp .forge/research/*.md "$HUB/documents/" 2>/dev/null` (the findings library).
+3. **needs-human → `actions.yml`** — render each unchecked `- [ ]` line in `.forge/needs-human.md` as an
+   `items:` entry (`id` from the task `#NNN`, `title` = the summary, `status: open`, `blocking: true`).
+4. **Commit in the hub repo** with the activity-feed subject:
+   ```bash
+   git -C "$PM_HUB_DIR" add -A && git -C "$PM_HUB_DIR" commit -m "content: $PM_SLUG mark deployed"
+   ```
+   The `content: <slug> …` subject is what the hub's activity feed reads — no fuzzy phase-task writeback.
 
 ## 3. Batch end — STOP and report
 
