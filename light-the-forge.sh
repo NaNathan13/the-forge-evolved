@@ -333,15 +333,16 @@ else
   yellow "  ! README.md already exists — left untouched"
 fi
 
-# ─── 5. register settings.json (statusline + ctx-gate + _probe.sh) ────────────
+# ─── 5. register settings.json (statusline + ctx-gate + continuity hooks) ─────
 echo
 bold "Registering .claude/settings.json…"
 SETTINGS="$DIR/.claude/settings.json"
 mkdir -p "$DIR/.claude"
 
-# The canonical Forge settings. ctx-gate enforces the 40-warn/50-deny rule; _probe.sh
-# passively logs SessionStart/PreCompact/Stop so Nate can confirm the web harness fires
-# them before the real continuity hooks are trusted (see TODO-FOR-NATE.md).
+# The canonical Forge settings. ctx-gate enforces the 40-warn/50-deny rule. The continuity hooks are wired
+# (the SessionStart/Stop hook-firing probe passed 2026-06-18): SessionStart injects .forge/continue.md,
+# PreCompact/Stop auto-commit it (Stop guarded so no-op turns never commit). PreCompact is untested but
+# harmless — it only fires on a compaction the 40/50 rule avoids. _probe.sh ships as an optional diagnostic.
 read -r -d '' FORGE_SETTINGS <<'JSON' || true
 {
   "statusLine": { "type": "command", "command": ".claude/statusline.sh" },
@@ -350,13 +351,13 @@ read -r -d '' FORGE_SETTINGS <<'JSON' || true
       { "matcher": "*", "hooks": [ { "type": "command", "command": ".claude/hooks/ctx-gate.sh" } ] }
     ],
     "SessionStart": [
-      { "hooks": [ { "type": "command", "command": ".claude/hooks/_probe.sh" } ] }
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/continuity-inject.sh" } ] }
     ],
     "PreCompact": [
-      { "hooks": [ { "type": "command", "command": ".claude/hooks/_probe.sh" } ] }
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/continuity-commit.sh" } ] }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": ".claude/hooks/_probe.sh" } ] }
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/continuity-commit.sh" } ] }
     ]
   },
   "permissions": {
@@ -446,9 +447,7 @@ echo "    .knowledge/lessons.md, CLAUDE.md, CONTEXT.md, .gitignore, README.md"
 echo
 bold "  Next:"
 echo   "    • Fill STACK_DIR / CONTAINER_PORT in .forge/config once the app's stack exists."
-echo   "    • Hook-probe gate: the real continuity hooks stay un-wired until Nate runs the"
-echo   "      SessionStart/PreCompact/Stop probe (see TODO-FOR-NATE.md). _probe.sh logs to"
-echo   "      .forge/hook-probe.log meanwhile — harmless if it never fires."
+echo   "    • Continuity hooks are wired: SessionStart injects .forge/continue.md, Stop auto-commits it."
 echo
 echo "  Then: open this folder in Claude Code and run  /prospect"
 echo "        (researches + warms the idea, then sends you into /ponder)"

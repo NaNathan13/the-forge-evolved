@@ -72,8 +72,8 @@ installs the kit, scaffolds `.forge/`, writes `config` + `seed.md`, registers `s
 On exit 0, echo the essentials: the one repo it created, the deploy type recorded in `.forge/config`, and the
 two next steps — **fill `STACK_DIR`/`CONTAINER_PORT` in `.forge/config` once the app's stack exists**, and
 **run `/prospect`** (it reads the seed the installer left, researches the idea on approval, then sends them
-into `/ponder`). Mention the **hook-probe gate**: the real continuity hooks stay un-wired until Nate runs the
-SessionStart/PreCompact/Stop probe (the installer leaves `_probe.sh` logging to `.forge/hook-probe.log`).
+into `/ponder`). The continuity hooks are wired by default (SessionStart injects `.forge/continue.md`, Stop
+auto-commits it) — the hook-firing probe passed 2026-06-18.
 
 On non-zero exit (a folder that's already forged, missing `git`/`jq`), surface the script's stderr verbatim
 and stop — do not paper over a partial scaffold.

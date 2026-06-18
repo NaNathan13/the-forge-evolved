@@ -92,7 +92,7 @@ re-run `/forge`) first.
 one-liner fetches `update-forge.sh` from GitHub and only needs `.forge/config` to exist. Running it once also
 installs the `/forge-update` skill itself, so future updates are just "update the forge" in Claude. For a
 genuinely old project, the run ends with a **wiring check** that flags any project-owned gaps (a missing
-`ctx-gate`/`_probe` hook, missing `.forge/config` keys) it deliberately won't auto-fix — reconcile those
+`ctx-gate`/continuity hook, missing `.forge/config` keys) it deliberately won't auto-fix — reconcile those
 against a fresh scaffold.
 
 ## License

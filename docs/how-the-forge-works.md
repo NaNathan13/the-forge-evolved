@@ -122,9 +122,10 @@ The workflow treats the context window as a hard resource, not a soft suggestion
 `.forge/continue.md` is a single agent-authored journal — `Now` / `Next` / `Friction` — that carries the
 in-flight thread and a rolling soft "this approach kept failing" memory across sessions. A friction note that
 proves durable is **promoted** to `.knowledge/lessons.md`, then dropped. SessionStart auto-inject and
-PreCompact/Stop auto-commit of this file are *opportunistic extras* gated behind a one-time hook-firing probe
-(`_probe.sh` logs the three events to `.forge/hook-probe.log`); if the harness doesn't fire them, the agent
-maintains the journal manually and nothing breaks.
+PreCompact/Stop auto-commit of this file are wired by default — a one-time hook-firing probe confirmed the
+web harness fires SessionStart and Stop (2026-06-18). PreCompact is wired too but untested (it only fires on a
+compaction the 40/50 rule avoids). The agent also maintains the journal directly, so even where a hook doesn't
+fire, nothing breaks. (`_probe.sh` ships as an optional diagnostic that logs events to `.forge/hook-probe.log`.)
 
 ## Escalation — never block, never auto-merge bad code
 
@@ -182,5 +183,5 @@ rather than clobber an already-forged folder.
 
 After install, fill `STACK_DIR`/`CONTAINER_PORT` in `.forge/config` once the app's stack exists, then open the
 project folder in Claude Code and run `/prospect` (it reads the seed the installer left, then sends you into
-`/ponder`). The real continuity hooks stay un-wired until the one-time hook-firing probe passes; `_probe.sh`
-logs to `.forge/hook-probe.log` meanwhile. See `.claude/skills/light-the-forge/SKILL.md`.
+`/ponder`). The continuity hooks are wired by default (the hook-firing probe passed 2026-06-18). See
+`.claude/skills/light-the-forge/SKILL.md`.

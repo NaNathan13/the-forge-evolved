@@ -72,7 +72,7 @@ Or, from a local checkout of the-forge: `/path/to/update-forge.sh [--dry-run] [-
 ### 3. Report
 
 Echo what changed (the script's summary count) and confirm project-owned files were left alone. The script
-ends with a **wiring check** — if it flagged gaps (a missing `ctx-gate`/`_probe` hook in `settings.json`,
+ends with a **wiring check** — if it flagged gaps (a missing `ctx-gate`/continuity hook in `settings.json`,
 missing `.forge/config` keys), relay them: the updater deliberately won't touch project-owned files, so those
 need a manual fix against a fresh scaffold. If the kit changed how `/forge` or its agents behave, mention that
 the new behavior takes effect on the **next** command run — and that any **in-flight** batch should be

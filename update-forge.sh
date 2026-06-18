@@ -189,9 +189,10 @@ SETTINGS="$ROOT/.claude/settings.json"
 if [[ -f "$SETTINGS" ]]; then
   grep -q 'statusline\.sh' "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/statusline.sh (statusLine) — the context gauge won't show."; WIRING_WARN=$((WIRING_WARN+1)); }
   grep -q 'ctx-gate\.sh'   "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/ctx-gate.sh (PreToolUse) — the 50% hard-stop backstop is OFF."; WIRING_WARN=$((WIRING_WARN+1)); }
-  grep -q '_probe\.sh'     "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/_probe.sh (SessionStart/PreCompact/Stop) — the hook-firing probe is OFF."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'continuity-inject\.sh' "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/continuity-inject.sh (SessionStart) — continue.md won't auto-inject on resume."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'continuity-commit\.sh' "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/continuity-commit.sh (PreCompact/Stop) — continue.md won't auto-commit."; WIRING_WARN=$((WIRING_WARN+1)); }
 else
-  yellow "  ! no .claude/settings.json — statusline + ctx-gate + probe hooks are unregistered."; WIRING_WARN=$((WIRING_WARN+1))
+  yellow "  ! no .claude/settings.json — statusline + ctx-gate + continuity hooks are unregistered."; WIRING_WARN=$((WIRING_WARN+1))
 fi
 
 CFG="$ROOT/.forge/config"

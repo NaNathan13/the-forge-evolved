@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# continuity-commit.sh — PreCompact / Stop continuity hook. PROBE-GATED: NOT wired in
-# settings.json until Nate's hook-firing probe confirms PreCompact/Stop fire under the web
-# harness (see TODO-FOR-NATE.md). To wire it, add to settings.json hooks.PreCompact AND
-# hooks.Stop alongside _probe.sh:
-#   { "type": "command", "command": ".claude/hooks/continuity-commit.sh" }
+# continuity-commit.sh — PreCompact / Stop continuity hook. WIRED by default (the Stop hook-firing
+# probe passed 2026-06-18 under the web harness; PreCompact is untested but harmless — it only fires
+# on a compaction the 40/50 rule avoids). Registered in settings.json hooks.PreCompact + hooks.Stop
+# by the installer.
 #
 # Auto-commits .forge/continue.md so the continuity journal is durably checkpointed. Guarded by
 # `git diff --quiet` so a no-op turn (nothing changed in continue.md) never creates an empty
