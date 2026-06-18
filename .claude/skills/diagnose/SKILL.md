@@ -7,7 +7,7 @@ description: Disciplined diagnosis loop for hard bugs and performance regression
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
-When exploring the codebase, use the project's domain glossary (`CONTEXT.md`) to get a clear mental model of the relevant modules, and check prior decisions in the area you're touching — closed GitHub issues and `.knowledge/lessons.md`.
+When exploring the codebase, use the project's domain glossary (`CONTEXT.md`) to get a clear mental model of the relevant modules, and check prior decisions in the area you're touching — completed tasks in `.forge/tasks/` (`status: done`) and `.knowledge/lessons.md`.
 
 ## Phase 1 — Build a feedback loop
 

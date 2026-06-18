@@ -17,13 +17,14 @@ prospect → ponder → inscribe → forge      (prospect researches + refines; 
 It's **reusable**: most often it runs first, reading the kickoff seed — but invoke it anytime you're about to
 ponder a fresh idea and want prior art and context gathered first.
 
-**Hard line: no code, no GitHub writes during prospect.** You are gathering understanding. The only files you
-may write are **local docs**: `.claude/forge/intake.md` (the findings hand-off, below) and flipping the seed's
-done flag. No app code, no `gh` writes, no issues — those come later.
+**Hard line: no code, nothing built during prospect.** You are gathering understanding. The only files you
+may write are **local docs**: `.forge/research/intake.md` (the findings hand-off, below), other
+`.forge/research/<topic>.md` findings, and flipping the seed's done flag. No app code, no task files — those
+come later.
 
 ## 0. Pick up the idea (seed-gated, with a fresh-idea fallback)
 
-Read `.claude/forge/seed.md`. It carries a top-of-file flag:
+Read `.forge/seed.md`. It carries a top-of-file flag:
 
 ```
 ---
@@ -72,8 +73,8 @@ for ponder.
 
 ## 4. Write the findings + flip the seed flag
 
-When the ground is prepared, write `.claude/forge/intake.md` — the durable hand-off `/ponder` reads on start
-(it survives a `/clear`):
+When the ground is prepared, write `.forge/research/intake.md` — the durable hand-off `/ponder` reads on
+start (it survives a `/clear`). Other durable findings worth keeping go to `.forge/research/<topic>.md`:
 
 ```markdown
 # Prospect — <idea>
@@ -93,25 +94,25 @@ When the ground is prepared, write `.claude/forge/intake.md` — the durable han
 Then, if you consumed a `status: todo` seed, **flip its flag to `status: done`** (don't delete it — the seed
 is the original-vision record). Distill — `intake.md` is a warm starting point, not a transcript.
 
-## 5. Self-checkpoint context (the 30/40 rule)
+## 5. Self-checkpoint context (the 40/50 rule)
 
-Research is context-hungry — watch the gauge. Prospect's findings already live in `intake.md`, so a checkpoint
-is cheap: at ~35%, make sure `intake.md` is current, then it's safe to `/clear`. The findings file *is* the
-handoff; you don't also write `handoff.md` (that's ponder's).
+Research is context-hungry — watch the gauge. Prospect's findings already live in `.forge/research/`, so a
+checkpoint is cheap: at the **40% warn**, make sure `intake.md` is current, then it's safe to `/clear`. The
+findings file *is* the handoff (it folds into `.forge/continue.md`'s job) — there's no separate `handoff.md`.
 
 ## 6. Hand into /ponder (recommend, don't auto-run)
 
 When the idea is researched and focused, **recommend** the next step — don't auto-invoke:
 
-> Ground's prepared — findings in `.claude/forge/intake.md`. If context ran heavy, `/clear` first, then run
-> `/ponder` to grill this into a sliced plan.
+> Ground's prepared — findings in `.forge/research/intake.md`. If context ran heavy, `/clear` first, then
+> run `/ponder` to grill this into a sliced plan.
 
 Recommending (rather than chaining) is deliberate: prospect often ends at a natural `/clear` boundary after a
 research-heavy session, and `intake.md` is exactly what lets ponder pick up cold.
 
 ## Rules
 
-- **No code, no GitHub writes in prospect.** Local-doc writes only: `intake.md` + flipping the seed flag.
+- **No code, nothing built in prospect.** Local-doc writes only: `.forge/research/` + flipping the seed flag.
 - **Say the plan before you research.** Propose the lookups and get a yes through `AskUserQuestion` before any
   broad fan-out. A single scoped lookup can just run.
 - **Recommend ponder, don't auto-invoke.** End at a clean boundary; `intake.md` carries the context across.

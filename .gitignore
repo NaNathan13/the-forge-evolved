@@ -1,7 +1,9 @@
 .claude/settings.local.json
 .DS_Store
 .playwright-mcp/
-# ephemeral run-state (NOT knowledge) — dir kept via .gitkeep
-.claude/forge/.ctx
-.claude/forge/loop-state
-.claude/forge/handoff.md
+node_modules/
+# ephemeral run-state written when this kit repo is opened in Claude Code (statusline/probe)
+.forge/.ctx
+.forge/run-state
+.forge/hook-probe.log
+.forge/envision.md

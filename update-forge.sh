@@ -1,41 +1,34 @@
 #!/usr/bin/env bash
-# update-forge.sh — pull the latest Forge Evolved kit into an ALREADY-installed project.
+# update-forge.sh — pull the latest Forge kit into an ALREADY-installed project.
 #
-# Run this from inside an installed project's OUTER folder (the one that holds
-# .claude/forge/config — where you launch Claude Code). It fetches the kit from
-# GitHub and refreshes the KIT-OWNED files, while leaving every PROJECT-OWNED file
-# untouched:
+# Run this from the root of an installed project (the single repo that holds
+# .forge/config — where you launch Claude Code). It fetches the kit from GitHub and
+# refreshes the KIT-OWNED files, while leaving every PROJECT-OWNED file untouched:
 #
-#   Overwritten (the workflow itself):
+#   Overwritten (the kit itself):
 #     .claude/skills/   .claude/agents/   .claude/hooks/   .claude/statusline.sh
-#     docs/github-setup.md
 #   Never touched (your state):
-#     .claude/forge/{config,loop-state,seed.md}   .claude/settings.json
-#     CLAUDE.md   CONTEXT.md   .knowledge/lessons.md
+#     .forge/  (config, tasks, research, continue.md, needs-human.md, run-state, …)
+#     .claude/settings.json   CLAUDE.md   CONTEXT.md   .knowledge/lessons.md
 #
 # It never DELETES local files — a skill you added yourself survives. Files removed
-# upstream are reported, not removed.
+# upstream are reported, not removed. There is no GitHub workflow to refresh anymore.
 #
-# The app repo's .github/workflows/sync-board.yml is kit-owned but version-controlled,
-# so it's opt-in (--with-workflow) and you commit it yourself.
-#
-# Usage (from your project's outer folder):
-#   curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/update-forge.sh | bash
+# Usage (from your project root):
+#   curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge/main/update-forge.sh | bash
 #   curl -fsSL .../update-forge.sh | bash -s -- --dry-run        # preview only, change nothing
 #   curl -fsSL .../update-forge.sh | bash -s -- --ref v0.2       # pin a branch/tag/SHA
-#   curl -fsSL .../update-forge.sh | bash -s -- --with-workflow  # also refresh sync-board.yml
 #
-#   # or from a local checkout of the-forge-evolved:
-#   /path/to/update-forge.sh [--dry-run] [--ref <ref>] [--with-workflow]
+#   # or from a local checkout of the-forge:
+#   /path/to/update-forge.sh [--dry-run] [--ref <ref>]
 #
 # Requirements: git, rsync (falls back to cp if rsync is absent).
 
 set -euo pipefail
 
-REPO_URL="https://github.com/NaNathan13/the-forge-evolved.git"
+REPO_URL="https://github.com/NaNathan13/the-forge.git"
 REF="main"
 DRY_RUN=0
-WITH_WORKFLOW=0
 
 # ─── color helpers ───────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -55,11 +48,10 @@ die()    { red "✗ $*"; exit 1; }
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run|-n)     DRY_RUN=1; shift ;;
-    --with-workflow)  WITH_WORKFLOW=1; shift ;;
     --ref)            REF="${2:-}"; [[ -n "$REF" ]] || die "--ref needs a value (branch/tag/SHA)."; shift 2 ;;
     --ref=*)          REF="${1#--ref=}"; shift ;;
     -h|--help)
-      sed -n '2,30p' "$0" 2>/dev/null || true
+      sed -n '2,24p' "$0" 2>/dev/null || true
       exit 0 ;;
     *) die "Unknown argument: $1  (see --help)" ;;
   esac
@@ -68,11 +60,11 @@ done
 command -v git >/dev/null 2>&1 || die "git is required and not on PATH."
 HAVE_RSYNC=0; command -v rsync >/dev/null 2>&1 && HAVE_RSYNC=1
 
-# ─── must be run from an installed forge project ──────────────────────────────
-OUTER="$(pwd)"
-if [[ ! -f "$OUTER/.claude/forge/config" ]]; then
-  die "This isn't an installed Forge project (no ./.claude/forge/config here).
-  Run update-forge.sh from your project's OUTER folder — the one where you launch Claude Code.
+# ─── must be run from an installed forge project (single repo) ────────────────
+ROOT="$(pwd)"
+if [[ ! -f "$ROOT/.forge/config" ]]; then
+  die "This isn't an installed Forge project (no ./.forge/config here).
+  Run update-forge.sh from your project root — the one where you launch Claude Code.
   To scaffold a NEW project instead, use light-the-forge.sh."
 fi
 
@@ -94,7 +86,7 @@ fi
 if [[ -z "$SRC" ]]; then
   CLONE_DIR="$(mktemp -d)"
   trap 'rm -rf "$CLONE_DIR"' EXIT
-  bold "Fetching The Forge Evolved kit (${REF})…"
+  bold "Fetching The Forge kit (${REF})…"
   if ! git clone --depth 1 --branch "$REF" --quiet "$REPO_URL" "$CLONE_DIR" 2>/dev/null; then
     # --branch only accepts branches/tags; fall back to a full clone + checkout for an arbitrary SHA.
     git clone --quiet "$REPO_URL" "$CLONE_DIR" || die "Failed to clone $REPO_URL"
@@ -106,10 +98,12 @@ fi
 
 SRC_DESC="$REF"
 if SHA="$(git -C "$SRC" rev-parse --short HEAD 2>/dev/null)"; then SRC_DESC="$REF @ $SHA"; fi
+# Show where the kit actually came from — the local checkout when we used one, else the GitHub URL.
+if [[ "$SRC" == "${CLONE_DIR:-/nonexistent}" ]]; then SRC_LABEL="$REPO_URL"; else SRC_LABEL="$SRC (local checkout)"; fi
 
 echo
-bold "The Forge Evolved — update an installed project"
-printf '  Kit source:  %s (%s)\n  Project:     %s\n' "$REPO_URL" "$SRC_DESC" "$OUTER"
+bold "The Forge — update an installed project"
+printf '  Kit source:  %s (%s)\n  Project:     %s\n' "$SRC_LABEL" "$SRC_DESC" "$ROOT"
 [[ "$DRY_RUN" -eq 1 ]] && yellow "  DRY RUN — nothing will be written."
 echo
 
@@ -117,7 +111,7 @@ echo
 CHANGES=0
 plan_and_apply() {  # plan_and_apply <relpath> [is_file]
   local rel="$1" is_file="${2:-0}"
-  local src="$SRC/$rel" dst="$OUTER/$rel"
+  local src="$SRC/$rel" dst="$ROOT/$rel"
 
   if [[ ! -e "$src" ]]; then
     yellow "  ! source missing $rel — skipped"; return
@@ -165,74 +159,52 @@ plan_and_apply() {  # plan_and_apply <relpath> [is_file]
     while IFS= read -r line; do
       [[ "$line" == "Only in $dst"* ]] || continue
       local d="${line#Only in }"; d="${d%%:*}"; local f="${line##*: }"
-      local p="${d#$OUTER/}/$f"
+      local p="${d#$ROOT/}/$f"
       yellow "    · $p (local-only — kept, not in upstream)"
     done < <(diff -rq "$src" "$dst" 2>/dev/null || true)
   fi
 }
 
-# ─── refresh the kit-owned files ──────────────────────────────────────────────
+# ─── refresh the kit-owned files ONLY (never .claude/settings.json — it's yours) ─
 plan_and_apply ".claude/skills"
 plan_and_apply ".claude/agents"
 plan_and_apply ".claude/hooks"
 plan_and_apply ".claude/statusline.sh" 1
-plan_and_apply "docs/github-setup.md"  1
 
 # keep hooks / statusline executable
 if [[ "$DRY_RUN" -eq 0 ]]; then
-  [[ -d "$OUTER/.claude/hooks" ]] && find "$OUTER/.claude/hooks" -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
-  [[ -f "$OUTER/.claude/statusline.sh" ]] && chmod +x "$OUTER/.claude/statusline.sh" 2>/dev/null || true
-fi
-
-# ─── opt-in: refresh the app repo's board-sync workflow (version-controlled) ──
-echo
-# shellcheck disable=SC1090
-source "$OUTER/.claude/forge/config" 2>/dev/null || true
-WF_SRC="$SRC/templates/sync-board.yml"
-WF_DST="$OUTER/${APP_DIR:-}/.github/workflows/sync-board.yml"
-if [[ -n "${APP_DIR:-}" && -f "$WF_SRC" ]]; then
-  if [[ -f "$WF_DST" ]] && cmp -s "$WF_SRC" "$WF_DST"; then
-    printf '%s\n' "${DIM}  sync-board.yml — up to date${N}"
-  elif [[ "$WITH_WORKFLOW" -eq 1 ]]; then
-    if [[ "$DRY_RUN" -eq 0 ]]; then
-      mkdir -p "$(dirname "$WF_DST")"; cp "$WF_SRC" "$WF_DST"
-      green  "  + ${APP_DIR}/.github/workflows/sync-board.yml refreshed"
-      yellow "    ↳ it's version-controlled — review & commit it in the app repo:"
-      printf  '      git -C "%s" add .github/workflows/sync-board.yml && git -C "%s" commit -m "chore: update board-sync workflow"\n' "$APP_DIR" "$APP_DIR"
-    else
-      cyan "  ~ ${APP_DIR}/.github/workflows/sync-board.yml would be refreshed (--with-workflow)"
-    fi
-  else
-    yellow "  · ${APP_DIR}/.github/workflows/sync-board.yml differs from upstream — re-run with --with-workflow to refresh it (then commit it in the app repo)."
-  fi
+  [[ -d "$ROOT/.claude/hooks" ]] && find "$ROOT/.claude/hooks" -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
+  [[ -f "$ROOT/.claude/statusline.sh" ]] && chmod +x "$ROOT/.claude/statusline.sh" 2>/dev/null || true
 fi
 
 # ─── wiring check (advisory) — catch gaps in project-owned files we don't touch ─
-# The updater never edits settings.json / config (they're yours). But a project
-# scaffolded by an OLD kit can be missing wiring the current kit expects. We don't
-# fix it — we just tell you, so new skills don't silently lack their plumbing.
+# The updater never edits settings.json / config / .forge state (they're yours). But a
+# project scaffolded by an OLD kit can be missing wiring the current kit expects. We
+# don't fix it — we just tell you, so new skills don't silently lack their plumbing.
 echo
 bold "Wiring check (project-owned files — not modified, just verified):"
 WIRING_WARN=0
 
-SETTINGS="$OUTER/.claude/settings.json"
+SETTINGS="$ROOT/.claude/settings.json"
 if [[ -f "$SETTINGS" ]]; then
-  grep -q 'statusline\.sh'   "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/statusline.sh (statusLine) — the context gauge won't show."; WIRING_WARN=$((WIRING_WARN+1)); }
-  grep -q 'ctx-gate\.sh'     "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/ctx-gate.sh (PreToolUse) — the 40% hard-stop gate is OFF."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'statusline\.sh' "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/statusline.sh (statusLine) — the context gauge won't show."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'ctx-gate\.sh'   "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/ctx-gate.sh (PreToolUse) — the 50% hard-stop backstop is OFF."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'continuity-inject\.sh' "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/continuity-inject.sh (SessionStart) — continue.md won't auto-inject on resume."; WIRING_WARN=$((WIRING_WARN+1)); }
+  grep -q 'continuity-commit\.sh' "$SETTINGS" || { yellow "  ! settings.json doesn't register .claude/hooks/continuity-commit.sh (PreCompact/Stop) — continue.md won't auto-commit."; WIRING_WARN=$((WIRING_WARN+1)); }
 else
-  yellow "  ! no .claude/settings.json — statusline + ctx-gate hook are unregistered."; WIRING_WARN=$((WIRING_WARN+1))
+  yellow "  ! no .claude/settings.json — statusline + ctx-gate + continuity hooks are unregistered."; WIRING_WARN=$((WIRING_WARN+1))
 fi
 
-CFG="$OUTER/.claude/forge/config"
-for key in APP_DIR REPO_SLUG BOARD_OWNER PROJECT_NUMBER; do
-  grep -Eq "^[[:space:]]*${key}=" "$CFG" || { yellow "  ! .claude/forge/config is missing the ${key} key — the forge skills read it."; WIRING_WARN=$((WIRING_WARN+1)); }
+CFG="$ROOT/.forge/config"
+for key in DEPLOY_TYPE STACK_DIR CONTAINER_PORT PM_SLUG PM_HUB_DIR; do
+  grep -Eq "^[[:space:]]*${key}=" "$CFG" || { yellow "  ! .forge/config is missing the ${key} key — /forge reads it for deploy + projection."; WIRING_WARN=$((WIRING_WARN+1)); }
 done
 
 if [[ "$WIRING_WARN" -eq 0 ]]; then
-  printf '%s\n' "${DIM}    ok — settings.json + config have the keys the current kit expects.${N}"
+  printf '%s\n' "${DIM}    ok — settings.json + .forge/config have the keys the current kit expects.${N}"
 else
   yellow "  ↳ $WIRING_WARN gap(s). The updater won't change project-owned files — compare against a fresh"
-  yellow "    scaffold (light-the-forge.sh) or docs/github-setup.md and add the missing wiring by hand."
+  yellow "    scaffold (light-the-forge.sh) and add the missing wiring by hand."
 fi
 
 # ─── summary ──────────────────────────────────────────────────────────────────
@@ -242,7 +214,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     bold "Dry run complete — $CHANGES kit file(s) would change. Re-run without --dry-run to apply."; fi
 else
   if [[ "$CHANGES" -eq 0 ]]; then green "Already up to date."; else
-    green "Updated — $CHANGES kit file(s) refreshed. Project-owned files (config, loop-state, CLAUDE.md, CONTEXT.md, settings.json, lessons.md) were left untouched."; fi
+    green "Updated — $CHANGES kit file(s) refreshed. Project-owned files (.forge/ state, CLAUDE.md, CONTEXT.md, settings.json, lessons.md) were left untouched."; fi
   echo
-  printf '%s\n' "${DIM}  If a forge run is mid-flight, finish or /scrub it before relying on the new skills.${N}"
+  printf '%s\n' "${DIM}  If a forge run is mid-flight, let it finish (or /clear and re-run /forge) before relying on the new skills.${N}"
 fi

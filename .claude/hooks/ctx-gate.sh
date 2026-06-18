@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# PreToolUse hard stop: deny all tool calls once context >=40% (D10). The
-# statusline writes the live % to .claude/forge/.ctx each turn; we read it here.
-pct=$(cat .claude/forge/.ctx 2>/dev/null || echo 0)
-if [ "${pct:-0}" -ge 40 ]; then
+# PreToolUse backstop: deny all tool calls once context >=50% used (hard stop). The 40% WARN
+# is delivered visually by the statusline (no deny) — so the checkpoint write the warn asks for
+# is never blocked by the gate itself. Deny only ever catches a runaway past 50%.
+# The statusline writes the live % to .forge/.ctx each turn; we read it here.
+pct=$(cat .forge/.ctx 2>/dev/null || echo 0)
+if [ "${pct:-0}" -ge 50 ]; then
   cat <<'JSON'
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Context >=40% (hard stop). Stop now: write/refresh the handoff, then /clear and re-run the command — state is in GitHub + git + loop-state."}}
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Context ≥50% (backstop). /clear and re-run — state is in .forge/ files + git."}}
 JSON
 else echo '{}'; fi

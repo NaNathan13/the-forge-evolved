@@ -1,35 +1,41 @@
 #!/usr/bin/env bash
-# light-the-forge.sh — scaffold a brand-new Forge Evolved project, in one run.
+# light-the-forge.sh — scaffold a brand-new Forge project, in one run.
 #
 # Run this from inside an empty (or nearly empty) PROJECT FOLDER. It asks a few
-# questions, then stands up the split layout The Forge Evolved expects:
+# questions, then stands up the SINGLE repo The Forge expects — code, the
+# `.claude/` kit, and the `.forge/` build state all in ONE git repo:
 #
-#   project-folder/                 ← you run this here; Claude Code opens HERE
-#   ├── .claude/skills, agents, hooks, statusline.sh, forge/ (run-state)
-#   ├── .knowledge/lessons.md
-#   ├── CLAUDE.md, CONTEXT.md
-#   └── <name>-app/                 ← a fresh local git repo (your code goes here)
-#       ├── .github/workflows/sync-board.yml
-#       └── README.md
+#   project/                  ← you run this here; git init HERE; Claude Code opens HERE
+#   ├── .claude/              skills, agents, hooks, statusline.sh, settings.json   (kit-owned)
+#   ├── .knowledge/lessons.md (promoted durable codebase facts)
+#   ├── .forge/               ALL build state (project-owned; never touched by forge-update)
+#   │   ├── config            deploy + PM-hub coordinates
+#   │   ├── seed.md           original-idea record (/prospect reads it)
+#   │   ├── tasks/            the file-based queue (one file per task)
+#   │   ├── research/         findings (projected to the PM hub if present)
+#   │   ├── continue.md       continuity journal (Now / Next / Friction)
+#   │   └── needs-human.md    escalation surface
+#   ├── CLAUDE.md  CONTEXT.md
+#   ├── .gitignore
+#   └── README.md
 #
-# It installs the local kit and initializes the app repo locally. You set up the
-# GitHub side yourself — see docs/github-setup.md for the steps (repo, Projects v2
-# board, labels, repo variables, and the FORGE_PROJECT_PAT secret).
+# No GitHub. No split outer/app layout. No board/labels/PAT. Local `.forge/`
+# files are the source of truth; the PM hub is an optional projection.
 #
 # Usage:
 #   # One-liner (self-fetches the kit), from inside your empty project folder:
-#   curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge-evolved/main/light-the-forge.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/NaNathan13/the-forge/main/light-the-forge.sh | bash
 #
-#   # Or from a local checkout of the-forge-evolved:
+#   # Or from a local checkout of the-forge:
 #   /path/to/light-the-forge.sh                 # scaffold into the current dir
-#   /path/to/light-the-forge.sh <project-dir>   # scaffold into the named (outer) dir
+#   /path/to/light-the-forge.sh <project-dir>   # scaffold into the named dir
 #
 # Requirements: git, jq.
 
 set -euo pipefail
 
 # Real published location of the kit (used by the curl|bash self-fetch path).
-REPO_URL="https://github.com/NaNathan13/the-forge-evolved.git"
+REPO_URL="https://github.com/NaNathan13/the-forge.git"
 
 # ─── color helpers ───────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -59,7 +65,7 @@ else
 fi
 
 # ─── tool preflight ───────────────────────────────────────────────────────────
-# git initializes the app repo locally; jq merges settings.json.
+# git inits the single repo; jq merges settings.json.
 command -v git >/dev/null 2>&1 || die "git is required and not on PATH."
 command -v jq  >/dev/null 2>&1 || die "jq is required and not on PATH. Install: https://jqlang.github.io/jq/"
 
@@ -70,34 +76,36 @@ is_forge_checkout() {
 if ! is_forge_checkout; then
   CLONE_DIR="$(mktemp -d)"
   trap 'rm -rf "$CLONE_DIR"' EXIT
-  bold "Fetching The Forge Evolved…"
+  bold "Fetching The Forge…"
   git clone --depth 1 --quiet "$REPO_URL" "$CLONE_DIR" || die "Failed to clone $REPO_URL"
   SRC="$CLONE_DIR"
 fi
 
-# ─── resolve the OUTER project folder (where the kit installs / Claude runs) ──
-OUTER="${1:-$(pwd)}"
-[[ -d "$OUTER" ]] || die "Project directory does not exist: $OUTER"
-OUTER="$(cd -P "$OUTER" && pwd)"
-if [[ "$SRC" == "$OUTER" ]]; then
-  die "You're running this from inside the-forge-evolved checkout itself. Run it from a NEW, empty project folder (or pass one as an argument)."
+# ─── resolve the project folder (the ONE repo; Claude Code runs here) ─────────
+DIR="${1:-$(pwd)}"
+[[ -d "$DIR" ]] || die "Project directory does not exist: $DIR"
+DIR="$(cd -P "$DIR" && pwd)"
+if [[ "$SRC" == "$DIR" ]]; then
+  die "You're running this from inside the the-forge checkout itself. Run it from a NEW, empty project folder (or pass one as an argument)."
 fi
-# Guard the #1 user mistake: cloning the-forge-evolved and running from inside that clone.
-# The outer project folder must NOT be a git repo (your code becomes a git repo in <name>-app/).
-# If OUTER sits inside a checkout whose origin is the-forge-evolved, abort with a pointer.
-if OUTER_TOP="$(git -C "$OUTER" rev-parse --show-toplevel 2>/dev/null)"; then
-  OUTER_ORIGIN="$(git -C "$OUTER" remote get-url origin 2>/dev/null || true)"
-  if [[ "$OUTER_ORIGIN" == *the-forge-evolved* ]]; then
-    die "You're scaffolding inside a clone of The Forge Evolved ($OUTER_TOP).
+# Guard the #1 mistake: cloning the-forge and running from inside that clone.
+if DIR_ORIGIN="$(git -C "$DIR" remote get-url origin 2>/dev/null)"; then
+  if [[ "$DIR_ORIGIN" == *the-forge* && "$DIR_ORIGIN" != *the-forge-* ]]; then
+    die "You're scaffolding inside a clone of The Forge itself.
   Don't clone this repo to use it — the one-liner fetches what it needs on its own.
   Make a NEW, empty folder and run from there:
       mkdir my-project && cd my-project
       curl -fsSL ${REPO_URL%.git}/raw/main/light-the-forge.sh | bash"
   fi
 fi
+# A pre-existing repo here is fine (the kit can be added to an existing project),
+# but warn so an accidental re-run is obvious.
+if [[ -d "$DIR/.forge" ]]; then
+  die "This folder already has a .forge/ — it looks forged already. Refusing to clobber it."
+fi
 
-bold "The Forge Evolved — new project scaffold"
-printf '  Kit source:     %s\n  Project folder: %s\n\n' "$SRC" "$OUTER"
+bold "The Forge — new project scaffold"
+printf '  Kit source:     %s\n  Project folder: %s\n\n' "$SRC" "$DIR"
 
 # ─── setup questions ──────────────────────────────────────────────────────────
 ask() {  # ask VARNAME "prompt" "default"
@@ -123,44 +131,37 @@ echo
 bold "Tell me about the project"
 ask PROJECT_NAME       "Project name (proper casing, e.g. Recipe Box)"   ""
 [[ -n "$PROJECT_NAME" ]] || die "Project name is required."
-# Owner pre-fills the REPO_SLUG/BOARD_OWNER coordinates in .claude/forge/config.
-# Leave blank to fill it in later.
-ask OWNER              "GitHub owner for the coordinates (optional, user/org)"  ""
-ask PROJECT_ONE_LINER  "One-line description of what you're building"    "A project built with The Forge Evolved."
+ask PROJECT_ONE_LINER  "One-line description of what you're building"    "A project built with The Forge."
+# Deploy tier — the homelab docker network this app attaches to (decision 2 / config).
+ask DEPLOY_TYPE        "Deploy type — public | internal"                 "internal"
+case "$DEPLOY_TYPE" in
+  public|internal) ;;
+  *) die "Deploy type must be 'public' or 'internal' (got '$DEPLOY_TYPE')." ;;
+esac
 ask DO_RESEARCH        "Kick off initial research before building? (y/N)" "N"
 RESEARCH_NOTE=""
 case "$DO_RESEARCH" in
   y|Y|yes|YES)
-    ask RESEARCH_NOTE  "  What should /ponder research first?"           ""
+    ask RESEARCH_NOTE  "  What should /prospect research first?"         ""
     ;;
 esac
 
 # ─── derive names ─────────────────────────────────────────────────────────────
 SLUG="$(slugify "$PROJECT_NAME")"
-[[ -n "$SLUG" ]] || die "Could not derive a repo slug from '$PROJECT_NAME'. Use letters/numbers."
-APP_DIR_NAME="${SLUG}-app"
-APP_DIR="$OUTER/$APP_DIR_NAME"
-# Coordinates for .claude/forge/config. With no owner, a placeholder is written
-# for you to set when you create the repo (docs/github-setup.md).
-if [[ -n "$OWNER" ]]; then
-  REPO_SLUG="$OWNER/$SLUG"
-  BOARD_OWNER="$OWNER"
-else
-  REPO_SLUG="<owner>/$SLUG"
-  BOARD_OWNER="<owner>"
-fi
+[[ -n "$SLUG" ]] || die "Could not derive a slug from '$PROJECT_NAME'. Use letters/numbers."
 
 # ─── confirm ───────────────────────────────────────────────────────────────────
 echo
 bold "── Confirm ─────────────────────────────────"
 cyan  "  Display name : $PROJECT_NAME"
-cyan  "  Repo coords  : $REPO_SLUG"
-cyan  "  App folder   : ./$APP_DIR_NAME  (local git repo)"
+cyan  "  Slug         : $SLUG"
+cyan  "  Repo         : ./  (single git repo — code + .claude + .forge)"
+cyan  "  Deploy type  : $DEPLOY_TYPE"
 cyan  "  Description  : $PROJECT_ONE_LINER"
 if [[ -n "$RESEARCH_NOTE" ]]; then
   cyan "  Research     : $RESEARCH_NOTE"
 elif [[ "$DO_RESEARCH" =~ ^(y|Y|yes|YES)$ ]]; then
-  cyan "  Research     : (yes — /prospect will research before you ponder)"
+  cyan "  Research     : (yes — /prospect researches before you ponder)"
 else
   cyan "  Research     : (none)"
 fi
@@ -170,24 +171,15 @@ case "$CONFIRM" in
   n|N|no|NO) die "Aborted — nothing was created." ;;
 esac
 
-# ─── collision check ──────────────────────────────────────────────────────────
+# ─── 1. install the forge kit (.claude/, .knowledge/) ─────────────────────────
 echo
-bold "Checking for collisions…"
-if [[ -e "$APP_DIR" ]]; then
-  die "App folder already exists: $APP_DIR
-  Refusing to clobber it. Pick a different project name, or remove that folder, then re-run."
-fi
-green "  ✓ ./$APP_DIR_NAME is free"
-
-# ─── 1. install the forge kit into the OUTER folder ───────────────────────────
-echo
-bold "Installing the forge kit into the project folder…"
+bold "Installing the forge kit…"
 
 copy_tree() {  # copy_tree <relpath> [label]
   local rel="$1" label="${2:-$1}"
   if [[ -d "$SRC/$rel" ]]; then
-    mkdir -p "$OUTER/$rel"
-    cp -R "$SRC/$rel/." "$OUTER/$rel/"
+    mkdir -p "$DIR/$rel"
+    cp -R "$SRC/$rel/." "$DIR/$rel/"
     green "  ✓ $label"
   else
     yellow "  ! source missing $rel — skipped"
@@ -200,121 +192,40 @@ copy_tree ".claude/hooks"   ".claude/hooks/"
 
 # statusline (single file)
 if [[ -f "$SRC/.claude/statusline.sh" ]]; then
-  mkdir -p "$OUTER/.claude"
-  cp "$SRC/.claude/statusline.sh" "$OUTER/.claude/statusline.sh"
-  chmod +x "$OUTER/.claude/statusline.sh" 2>/dev/null || true
+  mkdir -p "$DIR/.claude"
+  cp "$SRC/.claude/statusline.sh" "$DIR/.claude/statusline.sh"
+  chmod +x "$DIR/.claude/statusline.sh" 2>/dev/null || true
   green "  ✓ .claude/statusline.sh"
 fi
 # make hooks executable
-if [[ -d "$OUTER/.claude/hooks" ]]; then
-  find "$OUTER/.claude/hooks" -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
+if [[ -d "$DIR/.claude/hooks" ]]; then
+  find "$DIR/.claude/hooks" -name '*.sh' -exec chmod +x {} \; 2>/dev/null || true
 fi
 
-# .knowledge (with lessons.md)
+# .knowledge (with empty lessons.md)
 copy_tree ".knowledge" ".knowledge/ (lessons.md)"
 
-# ship the manual GitHub-setup guide alongside the kit (so it's there to follow)
-if [[ -f "$SRC/docs/github-setup.md" ]]; then
-  mkdir -p "$OUTER/docs"
-  cp "$SRC/docs/github-setup.md" "$OUTER/docs/github-setup.md"
-  green "  ✓ docs/github-setup.md (manual GitHub setup steps)"
-fi
-
-# ephemeral run-state dir (in the OUTER folder — this is where loop-state lives)
-mkdir -p "$OUTER/.claude/forge"
-: > "$OUTER/.claude/forge/.gitkeep"
-green "  ✓ .claude/forge/ (run-state)"
-
-# ─── fill CLAUDE.md / CONTEXT.md in the OUTER folder (never overwrite) ─────────
-fill_doc() {  # fill_doc <template-relpath> <target-filename>
-  local tpl="$SRC/$1" out="$OUTER/$2"
-  [[ -f "$tpl" ]] || { yellow "  ! source missing $1 — skipped"; return; }
-  if [[ -f "$out" ]]; then
-    yellow "  ! $2 already exists — left untouched"
-    return
-  fi
-  PN="$PROJECT_NAME" POL="$PROJECT_ONE_LINER" AD="$APP_DIR_NAME" RS="$REPO_SLUG" \
-  awk '
-    { line=$0
-      gsub(/\{\{PROJECT_NAME\}\}/,      ENVIRON["PN"],  line)
-      gsub(/\{\{PROJECT_ONE_LINER\}\}/, ENVIRON["POL"], line)
-      gsub(/\{\{APP_DIR\}\}/,           ENVIRON["AD"],  line)
-      gsub(/\{\{REPO_SLUG\}\}/,         ENVIRON["RS"],  line)
-      print line
-    }' "$tpl" > "$out"
-  green "  ✓ $2 (filled from template)"
-}
-fill_doc "templates/CLAUDE.md"  "CLAUDE.md"
-fill_doc "templates/CONTEXT.md" "CONTEXT.md"
-
-# ─── 2. scaffold the app repo locally ─────────────────────────────────────────
+# ─── 2. scaffold the .forge/ state tree ───────────────────────────────────────
 echo
-bold "Scaffolding the app repo (./$APP_DIR_NAME)…"
+bold "Scaffolding .forge/ (build state)…"
+mkdir -p "$DIR/.forge/tasks" "$DIR/.forge/research"
+: > "$DIR/.forge/tasks/.gitkeep"
+: > "$DIR/.forge/research/.gitkeep"
+green "  ✓ .forge/tasks/  .forge/research/"
 
-mkdir -p "$APP_DIR/.github/workflows"
-
-# starter README
-cat > "$APP_DIR/README.md" <<EOF
-# $PROJECT_NAME
-
-$PROJECT_ONE_LINER
-
-> Built with [The Forge Evolved](https://github.com/NaNathan13/the-forge-evolved).
-> Work is planned and built from the parent folder via \`/ponder → /inscribe → /forge\`.
+# .forge/config — the single source the deploy/projection steps read.
+cat > "$DIR/.forge/config" <<EOF
+# .forge/config — written by light-the-forge.sh; read by /forge (deploy + PM-hub projection).
+# Single repo: all git runs at repo root (bare \`git\`, no -C). Paths are repo-relative or absolute.
+DEPLOY_TYPE="$DEPLOY_TYPE"   # public | internal      (homelab docker tier)
+STACK_DIR=""                 # TODO: path to this app's compose stack (set once the stack exists)
+CONTAINER_PORT=""            # TODO: port the health-check / UAT smoke hits
+PM_SLUG=""                   # PM hub project slug      (optional projection; set if/when projecting)
+PM_HUB_DIR="\$HOME/homelab/project-management/data"   # PM hub data repo (projection degrades to local files if absent)
 EOF
-green "  ✓ README.md"
+green "  ✓ .forge/config (DEPLOY_TYPE=$DEPLOY_TYPE)"
 
-# board sync workflow lives INSIDE the app repo (Actions run from the repo on GitHub).
-# Installed now so it's ready once the repo and board are set up (docs/github-setup.md).
-if [[ -f "$SRC/templates/sync-board.yml" ]]; then
-  cp "$SRC/templates/sync-board.yml" "$APP_DIR/.github/workflows/sync-board.yml"
-  green "  ✓ .github/workflows/sync-board.yml"
-else
-  die "Source missing templates/sync-board.yml — cannot install the board sync workflow."
-fi
-
-# the app repo's own .gitignore (forge run-state lives in the OUTER folder, so the
-# app repo stays clean — this just covers the usual local noise)
-cat > "$APP_DIR/.gitignore" <<'EOF'
-.DS_Store
-node_modules/
-EOF
-green "  ✓ .gitignore"
-
-# init + initial commit, locally.
-git -C "$APP_DIR" init -q
-git -C "$APP_DIR" add -A
-# Respect the user's configured git identity; fall back to a neutral one only if none is set
-# (a fresh machine with no global user.email would otherwise fail the commit).
-COMMIT_IDENT=()
-if ! git -C "$APP_DIR" config user.email >/dev/null 2>&1; then
-  COMMIT_IDENT=(-c user.name="Forge" -c user.email="forge@local")
-fi
-# NB: ${arr[@]+"${arr[@]}"} so an empty array doesn't trip `set -u` on bash 3.2 (macOS default).
-git -C "$APP_DIR" ${COMMIT_IDENT[@]+"${COMMIT_IDENT[@]}"} commit -q -m "chore: initial scaffold (The Forge Evolved)" \
-  || die "Failed to create the initial commit in $APP_DIR."
-green "  ✓ git init + initial commit (local)"
-
-# ─── 3. write the forge config the skills read (APP_DIR + REPO_SLUG) ──────────
-echo
-bold "Writing .claude/forge/config…"
-cat > "$OUTER/.claude/forge/config" <<EOF
-# Written by light-the-forge.sh — read by the forge skills (/forge, /inscribe, /scrub).
-# Paths are relative to this OUTER project folder (where you launch Claude Code).
-# All git operations target the app repo; all gh operations target the GitHub repo.
-#
-# After you create the repo + Projects board (docs/github-setup.md), confirm
-# REPO_SLUG/BOARD_OWNER below and fill in PROJECT_NUMBER — the forge skills read
-# these to find and move issues on the board.
-APP_DIR="$APP_DIR_NAME"
-REPO_SLUG="$REPO_SLUG"
-BOARD_OWNER="$BOARD_OWNER"
-PROJECT_NUMBER=""   # TODO: set to your Projects v2 board number (docs/github-setup.md)
-EOF
-green "  ✓ .claude/forge/config (APP_DIR=$APP_DIR_NAME, REPO_SLUG=$REPO_SLUG)"
-
-# ─── 4. write the seed for /prospect (description + optional research note) ───
-bold "Writing .claude/forge/seed.md…"
+# .forge/seed.md — the original-idea record /prospect reads.
 {
   printf '%s\n' '---' 'status: todo' '---' ''
   printf '# Initial idea — %s\n\n' "$PROJECT_NAME"
@@ -330,89 +241,214 @@ bold "Writing .claude/forge/seed.md…"
   fi
   printf '<!-- /prospect reads this on first run and flips status to done (it does not delete it).\n'
   printf '     /ponder falls back to this if /prospect was skipped. Keep it as the original-idea record. -->\n'
-} > "$OUTER/.claude/forge/seed.md"
-green "  ✓ .claude/forge/seed.md"
+} > "$DIR/.forge/seed.md"
+green "  ✓ .forge/seed.md"
 
-# ─── 5. register statusline + ctx-gate hook in OUTER settings.json ────────────
+# .forge/continue.md — the continuity journal skeleton (agent-authored from here on).
+cat > "$DIR/.forge/continue.md" <<EOF
+# Continue — $PROJECT_NAME
+
+## Now
+<!-- overwritten live: active command, cursor mirror, branch -->
+(nothing in flight)
+
+## Next
+<!-- overwritten: the single next action -->
+Run /prospect to warm the idea, then /ponder → /inscribe → /forge.
+
+## Friction
+<!-- rolling ~5 bullets: soft "this approach kept failing" memory. A note that proves durable
+     gets promoted to .knowledge/lessons.md, then dropped from here. -->
+(none yet)
+EOF
+green "  ✓ .forge/continue.md"
+
+# .forge/needs-human.md — the escalation surface.
+cat > "$DIR/.forge/needs-human.md" <<EOF
+# Needs human — $PROJECT_NAME
+
+<!-- /forge appends a line here when a task escalates (status: needs-human). Each line:
+     - [ ] #NNN <reason>: <one-line summary>. Recover: <fix>, set status: ready, re-run /forge. -->
+
+(nothing needed)
+EOF
+green "  ✓ .forge/needs-human.md"
+
+# ─── 3. fill CLAUDE.md / CONTEXT.md from templates (never overwrite) ──────────
 echo
-bold "Registering statusline + ctx-gate hook in .claude/settings.json…"
-SETTINGS="$OUTER/.claude/settings.json"
-mkdir -p "$OUTER/.claude"
+bold "Writing CLAUDE.md / CONTEXT.md…"
+fill_doc() {  # fill_doc <template-relpath> <target-filename>
+  local tpl="$SRC/$1" out="$DIR/$2"
+  [[ -f "$tpl" ]] || { yellow "  ! source missing $1 — skipped"; return; }
+  if [[ -f "$out" ]]; then
+    yellow "  ! $2 already exists — left untouched"
+    return
+  fi
+  PN="$PROJECT_NAME" POL="$PROJECT_ONE_LINER" SL="$SLUG" DT="$DEPLOY_TYPE" \
+  awk '
+    { line=$0
+      gsub(/\{\{PROJECT_NAME\}\}/,      ENVIRON["PN"],  line)
+      gsub(/\{\{PROJECT_ONE_LINER\}\}/, ENVIRON["POL"], line)
+      gsub(/\{\{SLUG\}\}/,              ENVIRON["SL"],  line)
+      gsub(/\{\{DEPLOY_TYPE\}\}/,       ENVIRON["DT"],  line)
+      print line
+    }' "$tpl" > "$out"
+  green "  ✓ $2 (filled from template)"
+}
+fill_doc "templates/CLAUDE.md"  "CLAUDE.md"
+fill_doc "templates/CONTEXT.md" "CONTEXT.md"
 
+# ─── 4. .gitignore + README ───────────────────────────────────────────────────
+if [[ ! -f "$DIR/.gitignore" ]]; then
+  cat > "$DIR/.gitignore" <<'EOF'
+# ── .forge/ ephemeral run-state (never committed — a mid-run interruption must
+#    never leave committed state lying about a task) ──
+.forge/run-state
+.forge/.ctx
+.forge/envision.md
+.forge/hook-probe.log
+# ── local noise ──
+.claude/settings.local.json
+node_modules/
+.DS_Store
+.playwright-mcp/
+EOF
+  green "  ✓ .gitignore"
+else
+  yellow "  ! .gitignore already exists — left untouched"
+fi
+
+if [[ ! -f "$DIR/README.md" ]]; then
+  cat > "$DIR/README.md" <<EOF
+# $PROJECT_NAME
+
+$PROJECT_ONE_LINER
+
+> Built with [The Forge](https://github.com/NaNathan13/the-forge). One repo holds the code, the
+> \`.claude/\` build kit, and the \`.forge/\` state. Plan and build via \`/prospect → /ponder →
+> /inscribe → /forge\`.
+EOF
+  green "  ✓ README.md"
+else
+  yellow "  ! README.md already exists — left untouched"
+fi
+
+# ─── 5. register settings.json (statusline + ctx-gate + continuity hooks) ─────
+echo
+bold "Registering .claude/settings.json…"
+SETTINGS="$DIR/.claude/settings.json"
+mkdir -p "$DIR/.claude"
+
+# The canonical Forge settings. ctx-gate enforces the 40-warn/50-deny rule. The continuity hooks are wired
+# (the SessionStart/Stop hook-firing probe passed 2026-06-18): SessionStart injects .forge/continue.md,
+# PreCompact/Stop auto-commit it (Stop guarded so no-op turns never commit). PreCompact is untested but
+# harmless — it only fires on a compaction the 40/50 rule avoids. _probe.sh ships as an optional diagnostic.
 read -r -d '' FORGE_SETTINGS <<'JSON' || true
 {
   "statusLine": { "type": "command", "command": ".claude/statusline.sh" },
   "hooks": {
     "PreToolUse": [
       { "matcher": "*", "hooks": [ { "type": "command", "command": ".claude/hooks/ctx-gate.sh" } ] }
+    ],
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/continuity-inject.sh" } ] }
+    ],
+    "PreCompact": [
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/continuity-commit.sh" } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": ".claude/hooks/continuity-commit.sh" } ] }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git ls-files:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(bash -n:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(docker compose:*)",
+      "Bash(curl:*)"
     ]
   }
 }
 JSON
 
-if [[ -f "$SETTINGS" ]]; then
-  if jq -e . "$SETTINGS" >/dev/null 2>&1; then
-    had_statusline=0
-    jq -e 'has("statusLine")' "$SETTINGS" >/dev/null 2>&1 && had_statusline=1
-    tmp="$(mktemp)"
-    if jq '
-          ($statusline_cmd) as $sl
-        | ($ctxgate_cmd)    as $cg
-        | (if has("statusLine") then .
-           else .statusLine = {"type":"command","command":$sl} end)
-        | .hooks = (.hooks // {})
-        | .hooks.PreToolUse = (.hooks.PreToolUse // [])
-        | (if [ .hooks.PreToolUse[]?.hooks[]?.command ] | any(. == $cg)
-             then .
-           else .hooks.PreToolUse += [ {"matcher":"*","hooks":[{"type":"command","command":$cg}]} ]
-           end)
-        ' \
-        --arg statusline_cmd ".claude/statusline.sh" \
-        --arg ctxgate_cmd ".claude/hooks/ctx-gate.sh" \
-        "$SETTINGS" > "$tmp" 2>/dev/null; then
-      mv "$tmp" "$SETTINGS"
-      if [[ "$had_statusline" -eq 1 ]]; then
-        green  "  ✓ appended ctx-gate PreToolUse hook to existing settings.json"
-        yellow "    (kept your existing statusLine — verify it shows the context gauge)"
-      else
-        green "  ✓ merged statusline + ctx-gate hook into existing settings.json"
-      fi
-    else
-      rm -f "$tmp"
-      yellow "  ! Could not merge settings.json automatically. Add these keys manually:"
-      printf '%s\n' "$FORGE_SETTINGS" >&2
-    fi
+if [[ -f "$SETTINGS" ]] && jq -e . "$SETTINGS" >/dev/null 2>&1; then
+  # Deep-merge into the existing (valid) settings; the Forge keys win on conflict.
+  # Note: array keys (hooks, permissions.allow) are REPLACED by the Forge set — fine for a
+  # near-empty new project; on a populated one, eyeball the result.
+  tmp="$(mktemp)"
+  if printf '%s\n' "$FORGE_SETTINGS" | jq -s '.[0] * .[1]' "$SETTINGS" - > "$tmp" 2>/dev/null && jq -e . "$tmp" >/dev/null 2>&1; then
+    mv "$tmp" "$SETTINGS"
+    green  "  ✓ merged Forge keys into existing settings.json"
+    yellow "    (hooks/permissions arrays were replaced — verify if you had custom ones)"
   else
-    yellow "  ! Existing .claude/settings.json is not valid JSON — left untouched. Add manually:"
+    rm -f "$tmp"
+    yellow "  ! Could not merge settings.json automatically. Add these keys manually:"
     printf '%s\n' "$FORGE_SETTINGS" >&2
   fi
 else
   printf '%s\n' "$FORGE_SETTINGS" > "$SETTINGS"
-  green "  ✓ wrote .claude/settings.json (statusline + ctx-gate hook)"
+  green "  ✓ wrote .claude/settings.json"
 fi
 
-# ─── 6. summary ────────────────────────────────────────────────────────────────
+# ─── 6. git init + initial commit (the ONE repo) ──────────────────────────────
 echo
-bold "The kit is installed."
+bold "Initializing the git repo…"
+if [[ -d "$DIR/.git" ]]; then
+  yellow "  ! already a git repo — skipping git init"
+else
+  git -C "$DIR" init -q
+  green "  ✓ git init"
+fi
+git -C "$DIR" add -A
+# Respect the user's git identity; fall back to a neutral one only if none is set.
+COMMIT_IDENT=()
+if ! git -C "$DIR" config user.email >/dev/null 2>&1; then
+  COMMIT_IDENT=(-c user.name="Forge" -c user.email="forge@local")
+fi
+git -C "$DIR" ${COMMIT_IDENT[@]+"${COMMIT_IDENT[@]}"} commit -q -m "chore: initial scaffold (The Forge)" \
+  || die "Failed to create the initial commit in $DIR."
+# Force the default branch to `main` — the forge loop squash-merges into `main` regardless of
+# the machine's git init.defaultBranch (which may be `master`).
+git -C "$DIR" branch -M main 2>/dev/null || true
+green "  ✓ initial commit (on main)"
+
+# ─── 7. summary ────────────────────────────────────────────────────────────────
 echo
-printf '%s\n' "${DIM}  Project folder: $OUTER${N}"
-printf '%s\n' "${DIM}  App folder:     ./$APP_DIR_NAME  (local git repo)${N}"
-printf '%s\n' "${DIM}  Repo coords:    $REPO_SLUG  (in .claude/forge/config)${N}"
+bold "The forge is lit."
 echo
-echo "  Outer folder (forge tooling):"
-echo "    .claude/skills, agents, hooks, statusline.sh, forge/{config,seed.md,run-state},"
-echo "    .knowledge/lessons.md, CLAUDE.md, CONTEXT.md, docs/github-setup.md"
-echo "  App repo (local):"
-echo "    README.md, .gitignore, .github/workflows/sync-board.yml"
+printf '%s\n' "${DIM}  Project folder (the one repo): $DIR${N}"
+printf '%s\n' "${DIM}  Deploy type:                   $DEPLOY_TYPE  (in .forge/config)${N}"
 echo
-bold "  Next — set up the GitHub side (docs/github-setup.md):"
-echo   "    • create the repo and push ./$APP_DIR_NAME"
-echo   "    • create the Projects v2 board (six Forge columns) + the label set"
-echo   "    • set the repo variables (FORGE_PROJECT_ID, FORGE_STATUS_FIELD_ID, FORGE_OPT_*)"
-echo   "    • set the FORGE_PROJECT_PAT secret (classic PAT, 'project' scope)"
-echo   "    • fill PROJECT_NUMBER (and confirm REPO_SLUG/BOARD_OWNER) in .claude/forge/config"
+echo "  In this repo:"
+echo "    .claude/  — skills, agents, hooks, statusline.sh, settings.json"
+echo "    .forge/   — config, seed.md, tasks/, research/, continue.md, needs-human.md"
+echo "    .knowledge/lessons.md, CLAUDE.md, CONTEXT.md, .gitignore, README.md"
+echo
+bold "  Next:"
+echo   "    • Fill STACK_DIR / CONTAINER_PORT in .forge/config once the app's stack exists."
+echo   "    • Continuity hooks are wired: SessionStart injects .forge/continue.md, Stop auto-commits it."
 echo
 echo "  Then: open this folder in Claude Code and run  /prospect"
 echo "        (researches + warms the idea, then sends you into /ponder)"
-echo "        ($OUTER)"
 echo
